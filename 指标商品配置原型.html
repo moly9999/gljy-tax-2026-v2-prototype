@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>指标商品配置（原型）</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #fff;
+      --line: #e8e8e8;
+      --text: #262626;
+      --muted: #8c8c8c;
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --danger: #ff4d4f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    .content { padding: 16px 20px 32px; }
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .title-row h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .hint {
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      color: #614700;
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      line-height: 1.6;
+      font-size: 13px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .field label {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .field input, .field select {
+      height: 32px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      padding: 0 10px;
+      min-width: 180px;
+      outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--primary); }
+    .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    button {
+      height: 32px;
+      padding: 0 14px;
+      border-radius: 6px;
+      border: 1px solid #d9d9d9;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { border-color: var(--primary); color: var(--primary); }
+    button.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    button.primary:hover { background: var(--primary-hover); color: #fff; }
+    button.danger { color: var(--danger); border-color: #ffccc7; }
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      color: var(--muted) !important;
+      border-color: #d9d9d9 !important;
+      background: #f5f5f5 !important;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: middle;
+    }
+    th {
+      background: #fafafa;
+      color: var(--muted);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    tr:hover td { background: #fafafa; }
+    tr.selected td { background: #e6f4ff; }
+    .tag {
+      display: inline-block;
+      padding: 0 8px;
+      height: 22px;
+      line-height: 22px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .tag.book { background: #e6f4ff; color: #1677ff; }
+    .tag.nonbook { background: #f6ffed; color: #389e0d; }
+    .tag.empty { background: #fff2f0; color: #cf1322; }
+    .muted { color: var(--muted); }
+    .price-empty { color: var(--danger); font-weight: 600; }
+    .link { color: var(--primary); cursor: pointer; margin-right: 10px; }
+    .link.danger { color: var(--danger); }
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.78);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      z-index: 100;
+      display: none;
+      max-width: 80%;
+    }
+    .badge {
+      display: inline-block;
+      min-width: 18px;
+      height: 18px;
+      line-height: 18px;
+      text-align: center;
+      border-radius: 9px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 11px;
+      margin-left: 6px;
+      padding: 0 5px;
+    }
+    tr.editing td { background: #fffbe6; }
+    .cell-input, .cell-select {
+      width: 100%;
+      min-width: 90px;
+      height: 30px;
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      padding: 0 8px;
+      font-size: 13px;
+      outline: none;
+      background: #fff;
+    }
+    .cell-input:disabled {
+      border-color: #d9d9d9;
+      background: #f5f5f5;
+      color: var(--muted);
+    }
+    .cell-input.price { width: 100px; min-width: 80px; }
+    .cell-input.name { min-width: 140px; }
+    .cell-input.eas { min-width: 120px; }
+    .cell-input.easName { min-width: 140px; }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <div class="card">
+      <div class="title-row">
+        <h1>指标商品配置</h1>
+        <span class="muted">香蕉币 / 宝石币兑换比算成本用</span>
+      </div>
+
+      <div class="hint">
+        <div><b>同步：</b>每月 1 号从积分订单表同步商品（香蕉币用 credit_spu_id，宝石币用 product_id）；业务维护「商品类别」「EAS 编码」。</div>
+        <div><b>单价：</b>无 EAS → 业务手填；有 EAS → 可从 OTMS 出库成本取价（图书=出库成本；非图书=出库成本×1.13）。手工改价优先。</div>
+        <div><b>校验：</b>第 2 个工作日算指标前，若存在单价为空 → 报警群告警且本次不算；补价后可在「更新指标」重跑。</div>
+      </div>
+
+      <div class="filters">
+        <div class="field">
+          <label>积分商城商品编码</label>
+          <input id="filterCode" placeholder="精确搜索" />
+        </div>
+        <div class="field">
+          <label>EAS 编码</label>
+          <input id="filterEas" placeholder="精确搜索" />
+        </div>
+        <button class="primary" onclick="render()">查询</button>
+        <button onclick="resetFilters()">重置</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="btns">
+        <button class="primary" onclick="openCreate()">新增</button>
+        <button onclick="toast('打开导入弹窗（覆盖导入，模板：指标商品导入模版）')">导入</button>
+        <button id="btnBatchPrice" disabled onclick="batchUpdatePrice()">批量更新 EAS 单价</button>
+        <button class="danger" id="btnBatchDel" disabled onclick="batchDelete()">批量删除</button>
+        <button onclick="toast('导出当前列表全部数据')">导出</button>
+        <span class="muted" style="margin-left:8px;line-height:32px">
+          已选 <b id="selectedCount">0</b> 条
+          <span id="emptyPriceTip"></span>
+        </span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px"><input type="checkbox" id="checkAll" onchange="toggleAll(this.checked)" /></th>
+            <th>序号</th>
+            <th>积分商城商品编码</th>
+            <th>商品名称</th>
+            <th>商品类别</th>
+            <th>EAS 编码</th>
+            <th>EAS 名称</th>
+            <th>商品单价</th>
+            <th>修改人</th>
+            <th>修改时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+
+      <div class="footer-bar">
+        <span>共 <b id="totalCount">0</b> 条 · 演示数据</span>
+        <span>单价为空会标红；批量更新 EAS 单价需同时具备类别 + EAS</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let rows = [
+      { id: 1, code: 'SPU10086', name: '小猴语文练习册', cat: '图书', eas: 'MAT-BOOK-001', easName: '小猴语文练习册-第一册', price: '12.50', editor: '系统同步', time: '2026-08-01 01:10:00', manual: false },
+      { id: 2, code: 'SPU10087', name: '文具礼盒', cat: '非图书', eas: 'MAT-GIFT-002', easName: '文具礼盒A款', price: '22.60', editor: '张三', time: '2026-08-02 10:21:00', manual: true },
+      { id: 3, code: 'P90011', name: '邀请商城帆布袋', cat: '非图书', eas: 'MAT-BAG-009', easName: '帆布袋-邀请商城定制款', price: '', editor: '系统同步', time: '2026-08-01 01:10:00', manual: false },
+      { id: 4, code: 'P90012', name: '阅读绘本', cat: '图书', eas: '', easName: '', price: '18.00', editor: '李四', time: '2026-08-03 15:02:00', manual: true },
+      { id: 5, code: 'SPU10099', name: '待维护商品A', cat: '', eas: '', easName: '', price: '', editor: '系统同步', time: '2026-08-01 01:10:00', manual: false },
+    ];
+    let selected = new Set();
+    let editId = null;
+    let draftBackup = null;
+    let isCreating = false;
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(window.__t);
+      window.__t = setTimeout(() => el.style.display = 'none', 2200);
+    }
+
+    function filtered() {
+      const code = document.getElementById('filterCode').value.trim();
+      const eas = document.getElementById('filterEas').value.trim();
+      return rows.filter(r => {
+        if (code && r.code !== code) return false;
+        if (eas && r.eas !== eas) return false;
+        return true;
+      });
+    }
+
+    function resetFilters() {
+      filterCode.value = '';
+      filterEas.value = '';
+      render();
+    }
+
+    function catSelect(val) {
+      return `<select class="cell-select" data-f="cat">
+        <option value="" ${!val ? 'selected' : ''}>请选择</option>
+        <option value="图书" ${val === '图书' ? 'selected' : ''}>图书</option>
+        <option value="非图书" ${val === '非图书' ? 'selected' : ''}>非图书</option>
+      </select>`;
+    }
+
+    function render() {
+      const list = filtered();
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = list.map((r, idx) => {
+        const checked = selected.has(r.id) ? 'checked' : '';
+        const editing = editId === r.id;
+        const selClass = (selected.has(r.id) ? 'selected ' : '') + (editing ? 'editing' : '');
+        const canUpdate = r.cat && r.eas;
+
+        if (editing) {
+          const codeDisabled = isCreating ? '' : 'disabled';
+          return `<tr class="${selClass}">
+            <td><input type="checkbox" ${checked} onchange="toggleOne(${r.id}, this.checked)" /></td>
+            <td>${idx + 1}</td>
+            <td><input class="cell-input" data-f="code" value="${esc(r.code)}" ${codeDisabled} placeholder="商品编码" /></td>
+            <td><input class="cell-input name" data-f="name" value="${esc(r.name)}" placeholder="商品名称" /></td>
+            <td>${catSelect(r.cat)}</td>
+            <td><input class="cell-input eas" data-f="eas" value="${esc(r.eas)}" placeholder="可选" /></td>
+            <td><input class="cell-input easName" data-f="easName" value="${esc(r.easName)}" placeholder="可选" /></td>
+            <td><input class="cell-input price" data-f="price" type="number" step="0.01" value="${esc(r.price)}" placeholder="必填" /></td>
+            <td class="muted">${r.editor || '-'}</td>
+            <td class="muted">${r.time || '-'}</td>
+            <td>
+              <span class="link" onclick="saveInline(${r.id})">保存</span>
+              <span class="link danger" onclick="cancelInline()">取消</span>
+            </td>
+          </tr>`;
+        }
+
+        const catHtml = r.cat
+          ? `<span class="tag ${r.cat === '图书' ? 'book' : 'nonbook'}">${r.cat}</span>`
+          : `<span class="tag empty">未维护</span>`;
+        const priceHtml = r.price === '' || r.price === null
+          ? `<span class="price-empty">空</span>`
+          : `${r.price}${r.manual ? ' <span class="muted">(手工)</span>' : ''}`;
+        return `<tr class="${selClass}">
+          <td><input type="checkbox" ${checked} onchange="toggleOne(${r.id}, this.checked)" /></td>
+          <td>${idx + 1}</td>
+          <td>${r.code}</td>
+          <td>${r.name}</td>
+          <td>${catHtml}</td>
+          <td>${r.eas || '<span class="muted">-</span>'}</td>
+          <td>${r.easName || '<span class="muted">-</span>'}</td>
+          <td>${priceHtml}</td>
+          <td>${r.editor}</td>
+          <td>${r.time}</td>
+          <td>
+            <span class="link" onclick="startEdit(${r.id})">编辑</span>
+            <span class="link ${canUpdate ? '' : 'muted'}" onclick="${canUpdate ? `updateOnePrice(${r.id})` : `toast('请先维护商品类别和EAS编码')`}">更新EAS单价</span>
+          </td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('totalCount').textContent = list.length;
+      document.getElementById('selectedCount').textContent = selected.size;
+      const emptyCnt = rows.filter(r => !r.price).length;
+      document.getElementById('emptyPriceTip').innerHTML = emptyCnt
+        ? ` · 单价为空 <span class="badge">${emptyCnt}</span>（day2 计算将报警且不算）`
+        : '';
+      syncBatchButtons();
+      document.getElementById('checkAll').checked = list.length > 0 && list.every(r => selected.has(r.id));
+    }
+
+    function esc(v) {
+      return String(v ?? '').replace(/"/g, '&quot;');
+    }
+
+    function syncBatchButtons() {
+      const has = selected.size > 0 && editId == null;
+      document.getElementById('btnBatchDel').disabled = !has;
+      document.getElementById('btnBatchPrice').disabled = !has;
+    }
+
+    function toggleAll(checked) {
+      filtered().forEach(r => checked ? selected.add(r.id) : selected.delete(r.id));
+      render();
+    }
+    function toggleOne(id, checked) {
+      checked ? selected.add(id) : selected.delete(id);
+      render();
+    }
+
+    function ensureNoEditing() {
+      if (editId != null) {
+        toast('请先保存或取消当前编辑行');
+        return false;
+      }
+      return true;
+    }
+
+    function openCreate() {
+      if (!ensureNoEditing()) return;
+      const id = Date.now();
+      rows.unshift({
+        id, code: '', name: '', cat: '', eas: '', easName: '', price: '',
+        editor: '', time: '', manual: true,
+      });
+      editId = id;
+      isCreating = true;
+      draftBackup = null;
+      render();
+    }
+
+    function startEdit(id) {
+      if (!ensureNoEditing()) return;
+      const r = rows.find(x => x.id === id);
+      if (!r) return;
+      draftBackup = { ...r };
+      editId = id;
+      isCreating = false;
+      render();
+    }
+
+    function readInline(id) {
+      const tr = document.querySelector('tr.editing');
+      if (!tr) return null;
+      const get = (f) => {
+        const el = tr.querySelector(`[data-f="${f}"]`);
+        return el ? el.value.trim() : '';
+      };
+      return {
+        code: get('code'),
+        name: get('name'),
+        cat: get('cat'),
+        eas: get('eas'),
+        easName: get('easName'),
+        price: get('price'),
+      };
+    }
+
+    function now() {
+      const d = new Date();
+      const p = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+
+    function saveInline(id) {
+      const data = readInline(id);
+      if (!data) return;
+      if (!data.code || !data.name || !data.cat || data.price === '') {
+        toast('请填写必填项：编码、名称、类别、单价');
+        return;
+      }
+      if (rows.some(r => r.id !== id && r.code === data.code)) {
+        toast('商品编码已存在');
+        return;
+      }
+      const r = rows.find(x => x.id === id);
+      r.code = data.code;
+      r.name = data.name;
+      r.cat = data.cat;
+      r.eas = data.eas;
+      r.easName = data.easName;
+      r.price = data.price;
+      r.editor = '当前用户';
+      r.time = now();
+      r.manual = true;
+      editId = null;
+      isCreating = false;
+      draftBackup = null;
+      toast('保存成功（手工单价优先）');
+      render();
+    }
+
+    function cancelInline() {
+      if (isCreating && editId != null) {
+        rows = rows.filter(r => r.id !== editId);
+      } else if (draftBackup) {
+        const r = rows.find(x => x.id === editId);
+        if (r) Object.assign(r, draftBackup);
+      }
+      editId = null;
+      isCreating = false;
+      draftBackup = null;
+      render();
+    }
+
+    function updateOnePrice(id) {
+      if (!ensureNoEditing()) return;
+      const r = rows.find(x => x.id === id);
+      if (!r.cat || !r.eas) {
+        toast('请先维护商品类别和EAS编码');
+        return;
+      }
+      const base = 10 + (id % 7) + 0.25;
+      r.price = (r.cat === '非图书' ? (base * 1.13) : base).toFixed(2);
+      r.manual = false;
+      r.editor = '系统-OTMS';
+      r.time = now();
+      toast(`已更新 ${r.code} 单价为 ${r.price}（${r.cat === '非图书' ? '出库成本×1.13' : '出库成本'}）`);
+      render();
+    }
+
+    function batchUpdatePrice() {
+      if (!ensureNoEditing()) return;
+      const targets = rows.filter(r => selected.has(r.id));
+      const bad = targets.filter(r => !r.cat || !r.eas);
+      if (bad.length) {
+        toast('请先维护所选数据的商品类别和EAS编码');
+        return;
+      }
+      targets.forEach(r => {
+        const base = 10 + (r.id % 7) + 0.25;
+        r.price = (r.cat === '非图书' ? (base * 1.13) : base).toFixed(2);
+        r.manual = false;
+        r.editor = '系统-OTMS';
+        r.time = now();
+      });
+      toast(`已批量更新 ${targets.length} 条 EAS 单价`);
+      selected.clear();
+      render();
+    }
+
+    function batchDelete() {
+      if (!ensureNoEditing()) return;
+      if (!selected.size) return;
+      if (!confirm(`确认删除选中的 ${selected.size} 条指标商品配置？`)) return;
+      rows = rows.filter(r => !selected.has(r.id));
+      selected.clear();
+      toast('删除成功');
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,3396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>关联交易原型</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; background: #f0f2f5; }
+    .app { display: flex; height: 100vh; }
+    .sider {
+      width: 232px; background: #001529; color: rgba(255,255,255,.75);
+      overflow-y: auto; flex-shrink: 0;
+    }
+    .sider .brand {
+      color: #fff; font-weight: 600; padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex; align-items: center; gap: 8px; font-size: 15px;
+    }
+    .sider .menu-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px; font-size: 13px; cursor: pointer;
+      color: rgba(255,255,255,.75); user-select: none;
+    }
+    .sider .menu-item .arrow {
+      margin-left: auto; font-size: 10px; opacity: .55;
+      transition: transform .15s ease;
+    }
+    .sider .menu-item:hover { color: #fff; background: rgba(255,255,255,.04); }
+    .sider .menu-item.open { color: #fff; }
+    .sider .menu-item.open .arrow { transform: rotate(180deg); }
+    .sider .menu-item.active-root {
+      color: #fff; background: rgba(255,255,255,.06);
+    }
+    .sider .submenu { display: none; background: #000c17; }
+    .sider .submenu.show { display: block; }
+    .sider .submenu .sub-item {
+      padding: 10px 20px 10px 48px; font-size: 13px;
+      color: rgba(255,255,255,.65); cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      border-right: 3px solid transparent;
+    }
+    .sider .submenu .sub-item:hover { color: #fff; }
+    .sider .submenu .sub-item.active {
+      color: #faad14; background: #112a45; border-right-color: #faad14;
+    }
+    .sider .submenu .dot {
+      width: 14px; height: 14px; border: 1px solid currentColor;
+      border-radius: 50%; display: inline-flex; align-items: center;
+      justify-content: center; font-size: 10px; flex-shrink: 0;
+    }
+    .right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .frame-wrap { flex: 1; min-height: 0; }
+    iframe { width: 100%; height: 100%; border: 0; background: #fff; display: none; }
+    iframe.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sider">
+      <div class="brand"><span>🏢</span>关联交易管理</div>
+      <div class="menu-item"><span>📁</span>合同台账管理</div>
+      <div class="menu-item" id="menuInvoice" data-page="invoice"><span>🧾</span>发票模块</div>
+      <div class="menu-item"><span>📄</span>数据导出记录</div>
+      <div class="menu-item"><span>📚</span>税务关联交易<span class="arrow">▾</span></div>
+      <div class="menu-item" id="menuJifen" data-menu="jifen"><span>🪙</span>积分兑换<span class="arrow">▾</span></div>
+      <div class="submenu" id="subJifen" data-menu="jifen">
+        <div class="sub-item" id="menuZbProduct" data-page="zbproduct"><span class="dot">+</span>指标商品配置</div>
+      </div>
+      <div class="menu-item" id="menuPeiyou" data-menu="peiyou"><span>🧩</span>培优技术关联交易<span class="arrow">▾</span></div>
+      <div class="submenu" id="subPeiyou" data-menu="peiyou">
+        <div class="sub-item" data-page="noop"><span class="dot">+</span>规则配置</div>
+        <div class="sub-item" data-page="noop"><span class="dot">+</span>主体配置</div>
+        <div class="sub-item" data-page="noop"><span class="dot">+</span>确认关联交易范围</div>
+        <div class="sub-item" id="menuPeiyouResult" data-page="peiyou"><span class="dot">+</span>确认关联交易结果</div>
+      </div>
+      <div class="menu-item" id="menuTongyong" data-menu="tongyong"><span>▦</span>通用关联交易<span class="arrow">▾</span></div>
+      <div class="submenu" id="subTongyong" data-menu="tongyong">
+        <div class="sub-item" data-page="noop"><span class="dot">+</span>科目配置</div>
+        <div class="sub-item" data-page="noop"><span class="dot">+</span>关联交易类型配置</div>
+        <div class="sub-item" data-page="noop"><span class="dot">+</span>核算规则配置</div>
+        <div class="sub-item" id="menuResult" data-page="tongyong"><span class="dot">+</span>关联交易结果明细</div>
+      </div>
+      <div class="menu-item"><span>🚚</span>间接物流关联交易<span class="arrow">▾</span></div>
+      <div class="menu-item"><span>⚙</span>系统设置<span class="arrow">▾</span></div>
+    </aside>
+
+    <div class="right">
+      <div class="frame-wrap">
+        <iframe id="frameInvoice" title="发票模块" srcdoc="<!DOCTYPE html>
+<html lang=&quot;zh-CN&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <title>发票模块 · 已线下开票交互原型</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: #262626;
+      --muted: #8c8c8c;
+      --primary: #1677ff;
+      --danger: #ff4d4f;
+      --warn-bg: #fff7e6;
+      --warn-border: #ffd591;
+      --tag-bg: #fff1f0;
+      --tag-border: #ffa39e;
+      --tag-text: #cf1322;
+      --shadow: 0 2px 8px rgba(0, 0, 0, .06);
+      --radius: 8px;
+      --font: &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    .page { padding: 20px 24px 40px; max-width: 1440px; margin: 0 auto; }
+    .header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; margin-bottom: 16px;
+    }
+    .header h1 { margin: 0 0 6px; font-size: 20px; font-weight: 600; }
+    .header p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 720px; }
+
+    .toolbar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin-bottom: 12px; box-shadow: var(--shadow);
+    }
+    .toolbar .hint { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+    .btn {
+      appearance: none; border: 1px solid var(--border); background: #fff;
+      color: var(--text); border-radius: 6px; padding: 6px 14px;
+      font-size: 13px; cursor: pointer; line-height: 1.4;
+      transition: .15s ease;
+    }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn.primary:hover { filter: brightness(.95); color: #fff; }
+    .btn.danger { border-color: #ffccc7; color: var(--danger); }
+    .btn.link {
+      border: none; background: transparent; color: var(--primary);
+      padding: 0 4px; font-size: 13px;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      padding: 12px 10px; border-bottom: 1px solid var(--border);
+      text-align: left; vertical-align: top;
+    }
+    th {
+      background: #fafafa; color: #595959; font-weight: 500;
+      white-space: nowrap; position: sticky; top: 0; z-index: 1;
+    }
+    tr:hover td { background: #fafcff; }
+    tr.selected td { background: #e6f4ff; }
+    .col-check { width: 40px; }
+    .muted { color: var(--muted); }
+    .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .status {
+      display: inline-block; padding: 1px 8px; border-radius: 4px;
+      font-size: 12px; background: #f5f5f5; color: #595959;
+    }
+    .status.pending { background: #fff7e6; color: #d48806; }
+    .status.success { background: #f6ffed; color: #389e0d; }
+    .status.failed { background: #fff1f0; color: #cf1322; }
+
+    .remark-wrap {
+      min-width: 180px;
+      max-width: 280px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .remark-wrap .remark-main { flex: 1; min-width: 0; }
+    .remark-wrap .remark-text {
+      white-space: pre-wrap; word-break: break-all;
+      line-height: 1.5; color: var(--text);
+    }
+    .remark-wrap .remark-meta {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #bfbfbf;
+      line-height: 1.5;
+    }
+    .remark-wrap .edit-icon {
+      flex-shrink: 0;
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 0;
+      font-size: 15px;
+      line-height: 1;
+      margin-top: 2px;
+    }
+    .remark-wrap .edit-icon:hover { opacity: .75; }
+    .remark-add {
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 0;
+      font-size: 13px;
+    }
+    .remark-add:hover { opacity: .8; }
+
+    /* Modal */
+    .mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+    }
+    .mask.show { display: flex; }
+    .modal {
+      width: min(640px, 100%); background: #fff; border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.18); overflow: hidden;
+    }
+    .modal-hd {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 16px; font-weight: 600;
+    }
+    .modal-bd { padding: 20px; }
+    .modal-ft {
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .close-x {
+      border: none; background: transparent; font-size: 18px;
+      cursor: pointer; color: var(--muted); line-height: 1;
+    }
+
+    label.field-label {
+      display: block; margin-bottom: 8px; font-size: 13px; color: #595959;
+    }
+
+    /* 备注内容区：标签 + 可编辑文本合在一个框里 */
+    .remark-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      transition: .15s ease;
+    }
+    .remark-box:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(22,119,255,.12);
+    }
+    .remark-tags {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .remark-tags.show { display: flex; }
+
+    .mark-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px 4px 12px;
+      border-radius: 999px;
+      background: #fff1f0;
+      border: 1px solid #ffa39e;
+      color: #cf1322;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.2;
+      user-select: none;
+    }
+    .mark-chip .clear {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(207, 19, 34, .12);
+      color: #cf1322;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0;
+    }
+    .mark-chip .clear:hover { background: rgba(207, 19, 34, .22); }
+
+    .remark-box textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      border: none;
+      outline: none;
+      padding: 0;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.6;
+      background: transparent;
+    }
+    .count { text-align: right; font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .offline-block {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-start;
+    }
+    .offline-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      background: #fff;
+      color: #595959;
+      user-select: none;
+      width: fit-content;
+      white-space: nowrap;
+    }
+    .offline-left:hover { border-color: var(--primary); color: var(--primary); }
+    .offline-left:has(input:checked) {
+      border-color: #ffa39e;
+      background: #fff1f0;
+      color: #cf1322;
+    }
+    .offline-left input { width: 14px; height: 14px; accent-color: var(--danger); margin: 0; }
+
+    /* Toast / Confirm */
+    .toast-wrap {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 1100; display: flex; flex-direction: column; gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: #fff; border: 1px solid #ffccc7; color: #cf1322;
+      padding: 10px 16px; border-radius: 8px; box-shadow: var(--shadow);
+      font-size: 13px; min-width: 280px; text-align: center;
+      animation: fadeIn .18s ease;
+    }
+    .toast.ok { border-color: #b7eb8f; color: #389e0d; }
+    .toast.info { border-color: #91caff; color: #0958d9; }
+
+    .confirm {
+      width: min(420px, 100%);
+    }
+    .confirm .modal-bd { font-size: 14px; line-height: 1.7; color: #434343; }
+    .confirm .warn {
+      margin-top: 10px; padding: 10px 12px; background: var(--warn-bg);
+      border: 1px solid var(--warn-border); border-radius: 6px; font-size: 13px;
+    }
+
+    .legend {
+      margin-top: 16px; padding: 14px 16px; background: #fff;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 13px; color: #595959; line-height: 1.7;
+    }
+    .legend strong { color: var(--text); }
+    .legend code {
+      background: #f5f5f5; padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    }
+
+    .ops { white-space: nowrap; }
+    .ops .btn.link { margin-right: 10px; }
+    .ops .btn.link:last-child { margin-right: 0; }
+
+    .modal.wide { width: min(980px, 100%); }
+    .section-title {
+      font-size: 14px; font-weight: 600; margin: 0 0 12px; color: var(--text);
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px 16px;
+      padding: 14px;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 18px;
+      font-size: 13px;
+    }
+    .info-grid .label { color: var(--muted); margin-bottom: 4px; }
+    .info-grid .value { color: var(--text); word-break: break-all; }
+
+    .split-toolbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .split-table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 280px;
+    }
+    .split-table-wrap table { font-size: 12px; }
+    .split-table-wrap th, .split-table-wrap td {
+      padding: 8px; vertical-align: middle;
+    }
+    .split-table-wrap input {
+      width: 100%;
+      min-width: 90px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      font: inherit;
+      outline: none;
+    }
+    .split-table-wrap input:focus { border-color: var(--primary); }
+    .split-summary {
+      margin-top: 12px;
+      display: flex;
+      gap: 24px;
+      font-size: 13px;
+      color: #595959;
+    }
+    .split-summary strong { color: var(--text); }
+    .icon-del {
+      border: none; background: transparent; color: var(--danger);
+      cursor: pointer; font-size: 15px; padding: 0 4px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+
+    .layout { display: flex; min-height: 100vh; }
+    .sider {
+      width: 232px;
+      background: #001529;
+      color: rgba(255,255,255,.75);
+      padding: 0 0 24px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sider .brand {
+      color: #fff; font-weight: 600; padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex; align-items: center; gap: 8px; font-size: 15px;
+    }
+    .sider .menu-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px; font-size: 13px; cursor: pointer;
+      color: rgba(255,255,255,.75); user-select: none;
+    }
+    .sider .menu-item .arrow {
+      margin-left: auto; font-size: 10px; opacity: .55;
+      transition: transform .15s ease;
+    }
+    .sider .menu-item.open { color: #fff; }
+    .sider .menu-item.open .arrow { transform: rotate(180deg); }
+    .sider .menu-item:hover { color: #fff; background: rgba(255,255,255,.04); }
+    .sider .menu-item.active-root {
+      color: #fff; background: rgba(255,255,255,.06);
+    }
+    .sider .submenu { display: none; background: #000c17; }
+    .sider .submenu.show { display: block; }
+    .sider .submenu .sub-item {
+      padding: 10px 20px 10px 48px; font-size: 13px;
+      color: rgba(255,255,255,.65); cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      border-right: 3px solid transparent;
+    }
+    .sider .submenu .sub-item:hover { color: #fff; }
+    .sider .submenu .sub-item.active {
+      color: #faad14;
+      background: #112a45;
+      border-right-color: #faad14;
+    }
+    .sider .submenu .dot {
+      width: 14px; height: 14px; border: 1px solid currentColor;
+      border-radius: 50%; display: inline-flex; align-items: center;
+      justify-content: center; font-size: 10px; flex-shrink: 0;
+    }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--border, #e8e8e8);
+      padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .crumb { font-size: 13px; color: #8c8c8c; }
+    .user { font-size: 13px; color: #595959; }
+
+
+    .sider {
+      width: 232px;
+      background: #001529;
+      color: rgba(255,255,255,.75);
+      padding: 0 0 24px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sider .brand {
+      color: #fff; font-weight: 600; padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex; align-items: center; gap: 8px; font-size: 15px;
+    }
+    .sider .brand .ico { opacity: .9; }
+    .sider .menu-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px; font-size: 13px; cursor: default;
+      color: rgba(255,255,255,.75);
+    }
+    .sider .menu-item .arrow { margin-left: auto; font-size: 10px; opacity: .55; }
+    .sider .menu-item:hover { color: #fff; background: rgba(255,255,255,.04); }
+    .sider .menu-item.open { color: #fff; }
+    .sider .submenu { background: #000c17; }
+    .sider .submenu .sub-item {
+      padding: 10px 20px 10px 48px; font-size: 13px;
+      color: rgba(255,255,255,.65); cursor: default;
+      display: flex; align-items: center; gap: 8px;
+      border-right: 3px solid transparent;
+    }
+    .sider .submenu .sub-item:hover { color: #fff; }
+    .sider .submenu .sub-item.active {
+      color: #faad14;
+      background: #112a45;
+      border-right-color: #faad14;
+    }
+    .sider .submenu .dot {
+      width: 14px; height: 14px; border: 1px solid currentColor;
+      border-radius: 50%; display: inline-flex; align-items: center;
+      justify-content: center; font-size: 10px; flex-shrink: 0;
+    }
+
+  
+    .layout, .content-root { display: block !important; min-height: auto !important; }
+    .sider { display: none !important; }
+    .main, .main-content { display: block !important; }
+    .topbar { display: none !important; }
+    body { background: #f0f2f5; }
+    .page { padding: 16px 20px 32px; }
+</style>
+</head>
+<body>
+  <div class=&quot;content-root&quot;>
+
+    
+
+  <div class=&quot;main-content&quot;>
+    <div class=&quot;user&quot;>演示账号 (demo)</div></div>
+
+  <div class=&quot;page&quot;>
+    <div class=&quot;header&quot;>
+      <div>
+        <h1>发票模块 · 已线下开票交互原型</h1>
+        <p>
+          备注下方勾选「已线下开票」后，会在备注内容区出现椭圆形标签（带 ×）；可继续编辑文字。
+          点标签上的 × 清除标记。含该标记的数据，批量开票 / 开票 / 合并开票 / 拆分开票会拦截提示。
+        </p>
+      </div>
+    </div>
+
+    <div class=&quot;toolbar&quot;>
+      <button class=&quot;btn primary&quot; onclick=&quot;handleInvoiceAction('批量开票')&quot;>批量开票</button>
+      <button class=&quot;btn&quot; onclick=&quot;handleInvoiceAction('合并开票')&quot;>合并开票</button>
+      <span class=&quot;hint&quot;>「开票 / 拆分开票」在操作列；含【已线下开票】会拦截</span>
+    </div>
+
+    <div class=&quot;card&quot;>
+      <div style=&quot;overflow:auto;&quot;>
+        <table>
+          <thead>
+            <tr>
+              <th class=&quot;col-check&quot;><input type=&quot;checkbox&quot; id=&quot;checkAll&quot; onchange=&quot;toggleAll(this.checked)&quot; /></th>
+              <th>ID</th>
+              <th>账期</th>
+              <th>销售方</th>
+              <th>购买方</th>
+              <th>开票产品</th>
+              <th>含税金额</th>
+              <th>数量</th>
+              <th>发票状态</th>
+              <th>备注</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id=&quot;tbody&quot;></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class=&quot;legend&quot;>
+      <div><strong>交互说明</strong></div>
+      <div>1. 备注可勾选「已线下开票」，内容区显示椭圆标签；列表展示最后修改人/时间。</div>
+      <div>2. 操作列：待开票显示「开票」；购销类且可拆分时额外显示「拆分开票」。</div>
+      <div>3. 拆分开票打开「发票拆分设置」弹窗，可添加拆分项并确认。</div>
+      <div>4. 备注含【已线下开票】时，批量开票 / 合并开票 / 开票 / 拆分开票均提示：<code>存在已线下开票数据，请重新选择</code>。</div>
+    </div>
+  </div>
+
+    </div></div>
+
+  <!-- 备注弹窗 -->
+  <div class=&quot;mask&quot; id=&quot;remarkMask&quot;>
+    <div class=&quot;modal&quot;>
+      <div class=&quot;modal-hd&quot;>
+        <span>备注</span>
+        <button class=&quot;close-x&quot; onclick=&quot;closeRemarkModal()&quot; aria-label=&quot;关闭&quot;>×</button>
+      </div>
+      <div class=&quot;modal-bd&quot;>
+        <label class=&quot;field-label&quot; for=&quot;remarkInput&quot;>备注内容</label>
+
+        <div class=&quot;remark-box&quot;>
+          <div class=&quot;remark-tags&quot; id=&quot;remarkTags&quot;>
+            <span class=&quot;mark-chip&quot; id=&quot;markChip&quot;>
+              已线下开票
+              <button type=&quot;button&quot; class=&quot;clear&quot; title=&quot;清除标记&quot; onclick=&quot;clearOfflineMark()&quot;>×</button>
+            </span>
+          </div>
+          <textarea id=&quot;remarkInput&quot; maxlength=&quot;1000&quot; placeholder=&quot;请输入备注内容&quot; oninput=&quot;onRemarkInput()&quot;></textarea>
+        </div>
+        <div class=&quot;count&quot;><span id=&quot;remarkCount&quot;>0</span>/1000</div>
+
+        <div class=&quot;offline-block&quot;>
+          <label class=&quot;offline-left&quot;>
+            <input type=&quot;checkbox&quot; id=&quot;offlineCheck&quot; onchange=&quot;onOfflineToggle()&quot; />
+            <span>已线下开票</span>
+          </label>
+        </div>
+
+      </div>
+      <div class=&quot;modal-ft&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;closeRemarkModal()&quot;>取消</button>
+        <button class=&quot;btn primary&quot; onclick=&quot;saveRemark()&quot;>保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认弹窗（开票成功演示） -->
+  <div class=&quot;mask&quot; id=&quot;confirmMask&quot;>
+    <div class=&quot;modal confirm&quot;>
+      <div class=&quot;modal-hd&quot;>
+        <span id=&quot;confirmTitle&quot;>确认</span>
+        <button class=&quot;close-x&quot; onclick=&quot;closeConfirm()&quot;>×</button>
+      </div>
+      <div class=&quot;modal-bd&quot; id=&quot;confirmBody&quot;></div>
+      <div class=&quot;modal-ft&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;closeConfirm()&quot;>取消</button>
+        <button class=&quot;btn primary&quot; id=&quot;confirmOk&quot;>确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 拆分开票弹窗 -->
+  <div class=&quot;mask&quot; id=&quot;splitMask&quot;>
+    <div class=&quot;modal wide&quot;>
+      <div class=&quot;modal-hd&quot;>
+        <span>发票拆分设置</span>
+        <button class=&quot;close-x&quot; onclick=&quot;closeSplitModal()&quot; aria-label=&quot;关闭&quot;>×</button>
+      </div>
+      <div class=&quot;modal-bd&quot;>
+        <div class=&quot;section-title&quot;>发票信息</div>
+        <div class=&quot;info-grid&quot;>
+          <div>
+            <div class=&quot;label&quot;>发票含税金额</div>
+            <div class=&quot;value&quot; id=&quot;splitInfoAmount&quot;>-</div>
+          </div>
+          <div>
+            <div class=&quot;label&quot;>数量</div>
+            <div class=&quot;value&quot; id=&quot;splitInfoQty&quot;>-</div>
+          </div>
+          <div>
+            <div class=&quot;label&quot;>销售方主体</div>
+            <div class=&quot;value&quot; id=&quot;splitInfoSeller&quot;>-</div>
+          </div>
+          <div>
+            <div class=&quot;label&quot;>购买方主体</div>
+            <div class=&quot;value&quot; id=&quot;splitInfoBuyer&quot;>-</div>
+          </div>
+          <div>
+            <div class=&quot;label&quot;>商品大类</div>
+            <div class=&quot;value&quot; id=&quot;splitInfoCategory&quot;>-</div>
+          </div>
+          <div>
+            <div class=&quot;label&quot;>产品名称</div>
+            <div class=&quot;value&quot; id=&quot;splitInfoProduct&quot;>-</div>
+          </div>
+        </div>
+
+        <div class=&quot;split-toolbar&quot;>
+          <div class=&quot;section-title&quot; style=&quot;margin:0;&quot;>拆分明细</div>
+          <button class=&quot;btn primary&quot; onclick=&quot;addSplitRow()&quot;>+ 添加拆分项</button>
+        </div>
+        <div class=&quot;split-table-wrap&quot;>
+          <table>
+            <thead>
+              <tr>
+                <th>销售方主体</th>
+                <th>购买方主体</th>
+                <th>商品大类</th>
+                <th>产品名称</th>
+                <th>拆分金额</th>
+                <th>拆分数量</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id=&quot;splitTbody&quot;></tbody>
+          </table>
+        </div>
+        <div class=&quot;split-summary&quot;>
+          <div>已拆分金额：<strong id=&quot;splitUsed&quot;>¥0.00</strong></div>
+          <div>剩余可拆分金额：<strong id=&quot;splitLeft&quot;>¥0.00</strong></div>
+        </div>
+      </div>
+      <div class=&quot;modal-ft&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;closeSplitModal()&quot;>取消</button>
+        <button class=&quot;btn primary&quot; onclick=&quot;confirmSplit()&quot;>确认拆分</button>
+      </div>
+    </div>
+  </div>
+
+  <div class=&quot;toast-wrap&quot; id=&quot;toastWrap&quot;></div>
+
+  <script>
+    const OFFLINE_MARK = '【已线下开票】';
+
+    /** 模拟发票列表数据（字段对齐 shared_invoice_records 列表） */
+    let invoices = [
+      {
+        id: 10021,
+        accounting_period: '202507',
+        classify: '购销类关联交易',
+        seller_subject_name: '深圳市星桐科技有限公司',
+        seller_subject_code: 'SZ01',
+        buyer_subject_name: '北京好未来图书有限公司',
+        buyer_subject_code: 'BJ09',
+        product_category: '思博机(GLJY20250117014)',
+        products: '-',
+        quantity: 8,
+        amount_incl_tax: '628.44',
+        invoice_status: 'pending',
+        invoice_status_text: '待开票',
+        can_split: true,
+        remark: '',
+        remark_editor_name: '',
+        remark_edit_time: ''
+      },
+      {
+        id: 10022,
+        accounting_period: '202507',
+        classify: '税务TP',
+        seller_subject_name: '北京好未来科技有限公司',
+        seller_subject_code: 'HWL01',
+        buyer_subject_name: '佛山市南海区乐未来科技培训有限公司',
+        buyer_subject_code: 'L300756',
+        product_category: '技术服务',
+        products: '咨询服务',
+        quantity: 1,
+        amount_incl_tax: '5600.50',
+        invoice_status: 'pending',
+        invoice_status_text: '待开票',
+        can_split: false,
+        remark: '已与对方财务确认，线下已开票，请勿重复开具。' + OFFLINE_MARK,
+        remark_editor_name: '张三(061097)',
+        remark_edit_time: '2025-07-20 15:22:08'
+      },
+      {
+        id: 10023,
+        accounting_period: '202507',
+        classify: '购销类关联交易',
+        seller_subject_name: '欣欣相融教育科技（北京）有限公司',
+        seller_subject_code: 'BJ05',
+        buyer_subject_name: '北京全场景互联网科技有限公司',
+        buyer_subject_code: 'BJ88',
+        product_category: '图书(GLJY20250408001)',
+        products: '课程',
+        quantity: 15,
+        amount_incl_tax: '2777.62',
+        invoice_status: 'pending',
+        invoice_status_text: '待开票',
+        can_split: true,
+        remark: '待补充合同编号',
+        remark_editor_name: '李四(061088)',
+        remark_edit_time: '2025-07-18 10:01:00'
+      },
+      {
+        id: 10024,
+        accounting_period: '202506',
+        classify: '税务TP',
+        seller_subject_name: '北京新唐思创教育科技有限公司',
+        seller_subject_code: 'XF01',
+        buyer_subject_name: '上海市学而思教育信息咨询有限公司',
+        buyer_subject_code: 'SH02',
+        product_category: '培优技术',
+        products: '培优技术服务费',
+        quantity: 1,
+        amount_incl_tax: '930.00',
+        invoice_status: 'success',
+        invoice_status_text: '开票成功',
+        can_split: false,
+        remark: '',
+        remark_editor_name: '',
+        remark_edit_time: ''
+      }
+    ];
+
+    let selectedIds = new Set();
+    let editingId = null;
+    /** 弹窗内是否带「已线下开票」椭圆标签（与 textarea 文本分离展示） */
+    let offlineActive = false;
+    let splittingId = null;
+    let splitRows = [];
+
+    function hasOfflineMark(text) {
+      return String(text || '').includes(OFFLINE_MARK);
+    }
+
+    function stripOfflineMark(text) {
+      return String(text || '')
+        .split(OFFLINE_MARK).join('')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
+    function composeRemark(freeText, withMark) {
+      const text = String(freeText || '').trim();
+      if (!withMark) return text;
+      return text ? (text + OFFLINE_MARK) : OFFLINE_MARK;
+    }
+
+    function statusClass(status) {
+      if (status === 'pending') return 'pending';
+      if (status === 'success') return 'success';
+      if (status === 'failed') return 'failed';
+      return '';
+    }
+
+    function renderRemarkCell(row) {
+      const withMark = hasOfflineMark(row.remark);
+      const free = stripOfflineMark(row.remark);
+      const hasContent = withMark || !!free;
+
+      if (!hasContent) {
+        return `<button class=&quot;remark-add&quot; onclick=&quot;openRemarkModal(${row.id})&quot;>点击添加备注...</button>`;
+      }
+
+      const chip = withMark
+        ? `<span class=&quot;mark-chip&quot; style=&quot;margin-bottom:4px;&quot;>已线下开票</span>`
+        : '';
+      const text = free ? `<div class=&quot;remark-text&quot;>${escapeHtml(free)}</div>` : '';
+      const editor = row.remark_editor_name || '-';
+      const time = row.remark_edit_time || '-';
+
+      return `
+        <div class=&quot;remark-wrap&quot;>
+          <div class=&quot;remark-main&quot;>
+            ${chip}
+            ${text}
+            <div class=&quot;remark-meta&quot;>
+              <div>最后修改：${escapeHtml(editor)}</div>
+              <div>${escapeHtml(time)}</div>
+            </div>
+          </div>
+          <button class=&quot;edit-icon&quot; title=&quot;编辑备注&quot; onclick=&quot;openRemarkModal(${row.id})&quot;>✎</button>
+        </div>
+      `;
+    }
+
+    function renderOpsCell(row) {
+      if (row.invoice_status !== 'pending') {
+        return '<span class=&quot;muted&quot;>—</span>';
+      }
+      let html = `<button class=&quot;btn link&quot; onclick=&quot;handleRowInvoice(${row.id})&quot;>开票</button>`;
+      if (row.can_split) {
+        html += `<button class=&quot;btn link&quot; onclick=&quot;handleRowSplit(${row.id})&quot;>拆分开票</button>`;
+      }
+      return `<div class=&quot;ops&quot;>${html}</div>`;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = invoices.map((row) => {
+        const checked = selectedIds.has(row.id) ? 'checked' : '';
+        const selected = selectedIds.has(row.id) ? 'selected' : '';
+        return `
+          <tr class=&quot;${selected}&quot;>
+            <td class=&quot;col-check&quot;>
+              <input type=&quot;checkbox&quot; ${checked} onchange=&quot;toggleRow(${row.id}, this.checked)&quot; />
+            </td>
+            <td>${row.id}</td>
+            <td>${row.accounting_period}</td>
+            <td>${row.seller_subject_name}<div class=&quot;muted&quot;>${row.seller_subject_code}</div></td>
+            <td>${row.buyer_subject_name}<div class=&quot;muted&quot;>${row.buyer_subject_code}</div></td>
+            <td>${escapeHtml(row.product_category || row.products)}</td>
+            <td class=&quot;money&quot;>${row.amount_incl_tax}</td>
+            <td>${row.quantity}</td>
+            <td><span class=&quot;status ${statusClass(row.invoice_status)}&quot;>${row.invoice_status_text}</span></td>
+            <td>${renderRemarkCell(row)}</td>
+            <td>${renderOpsCell(row)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const all = invoices.length > 0 &amp;&amp; invoices.every((r) => selectedIds.has(r.id));
+      document.getElementById('checkAll').checked = all;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&amp;/g, '&amp;amp;')
+        .replace(/</g, '&amp;lt;')
+        .replace(/>/g, '&amp;gt;')
+        .replace(/&quot;/g, '&amp;quot;');
+    }
+
+    function toggleAll(checked) {
+      selectedIds = checked ? new Set(invoices.map((r) => r.id)) : new Set();
+      renderTable();
+    }
+
+    function toggleRow(id, checked) {
+      if (checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      renderTable();
+    }
+
+    function getSelectedRows() {
+      return invoices.filter((r) => selectedIds.has(r.id));
+    }
+
+    function assertNoOffline(rows) {
+      if (rows.some((r) => hasOfflineMark(r.remark))) {
+        toast('存在已线下开票数据，请重新选择');
+        return false;
+      }
+      return true;
+    }
+
+    /** 工具栏：批量开票 / 合并开票 */
+    function handleInvoiceAction(actionName) {
+      const rows = getSelectedRows();
+      if (!rows.length) {
+        toast('请先选择数据', 'info');
+        return;
+      }
+      if (!assertNoOffline(rows)) return;
+
+      openConfirm(
+        actionName,
+        `已选择 <strong>${rows.length}</strong> 条数据，确认执行「${actionName}」？
+         <div class=&quot;warn&quot;>原型演示：校验通过后才会进入此确认（实际会调后端开票接口）。</div>`,
+        () => {
+          toast(`${actionName}已提交（原型模拟）`, 'ok');
+          closeConfirm();
+        }
+      );
+    }
+
+    /** 操作列：开票 */
+    function handleRowInvoice(id) {
+      const row = invoices.find((r) => r.id === id);
+      if (!row) return;
+      if (!assertNoOffline([row])) return;
+
+      openConfirm(
+        '开票',
+        `确认对发票 <strong>${row.id}</strong> 执行开票？
+         <div class=&quot;warn&quot;>含税金额：¥${row.amount_incl_tax}</div>`,
+        () => {
+          toast('开票已提交（原型模拟）', 'ok');
+          closeConfirm();
+        }
+      );
+    }
+
+    /** 操作列：拆分开票 */
+    function handleRowSplit(id) {
+      const row = invoices.find((r) => r.id === id);
+      if (!row) return;
+      if (!assertNoOffline([row])) return;
+      if (!row.can_split) {
+        toast('当前发票不支持拆分', 'info');
+        return;
+      }
+      openSplitModal(row);
+    }
+
+    function openSplitModal(row) {
+      splittingId = row.id;
+      document.getElementById('splitInfoAmount').textContent = '¥' + row.amount_incl_tax;
+      document.getElementById('splitInfoQty').textContent = row.quantity;
+      document.getElementById('splitInfoSeller').textContent = row.seller_subject_name;
+      document.getElementById('splitInfoBuyer').textContent = row.buyer_subject_name;
+      document.getElementById('splitInfoCategory').textContent = row.product_category || '-';
+      document.getElementById('splitInfoProduct').textContent = row.products || '-';
+
+      // 默认两条拆分项（至少拆成两份）
+      splitRows = [
+        { amount: '', quantity: '' },
+        { amount: '', quantity: '' }
+      ];
+      renderSplitRows();
+      document.getElementById('splitMask').classList.add('show');
+    }
+
+    function closeSplitModal() {
+      document.getElementById('splitMask').classList.remove('show');
+      splittingId = null;
+      splitRows = [];
+    }
+
+    function addSplitRow() {
+      splitRows.push({ amount: '', quantity: '' });
+      renderSplitRows();
+    }
+
+    function removeSplitRow(index) {
+      if (splitRows.length <= 2) {
+        toast('至少需要拆分成两份~', 'info');
+        return;
+      }
+      splitRows.splice(index, 1);
+      renderSplitRows();
+    }
+
+    function onSplitFieldChange(index, field, value) {
+      splitRows[index][field] = value;
+      updateSplitSummary();
+    }
+
+    function renderSplitRows() {
+      const row = invoices.find((r) => r.id === splittingId);
+      if (!row) return;
+      const tbody = document.getElementById('splitTbody');
+      tbody.innerHTML = splitRows.map((item, index) => `
+        <tr>
+          <td>${escapeHtml(row.seller_subject_name)}</td>
+          <td>${escapeHtml(row.buyer_subject_name)}</td>
+          <td>${escapeHtml(row.product_category || '-')}</td>
+          <td>${escapeHtml(row.products || '-')}</td>
+          <td>
+            <input
+              placeholder=&quot;请输入金额&quot;
+              value=&quot;${escapeHtml(item.amount)}&quot;
+              oninput=&quot;onSplitFieldChange(${index}, 'amount', this.value)&quot;
+            />
+          </td>
+          <td>
+            <input
+              placeholder=&quot;请输入数量&quot;
+              value=&quot;${escapeHtml(item.quantity)}&quot;
+              oninput=&quot;onSplitFieldChange(${index}, 'quantity', this.value)&quot;
+            />
+          </td>
+          <td>
+            <button class=&quot;icon-del&quot; title=&quot;删除&quot; onclick=&quot;removeSplitRow(${index})&quot;>🗑</button>
+          </td>
+        </tr>
+      `).join('');
+      updateSplitSummary();
+    }
+
+    function updateSplitSummary() {
+      const row = invoices.find((r) => r.id === splittingId);
+      if (!row) return;
+      const total = Number(row.amount_incl_tax) || 0;
+      let used = 0;
+      splitRows.forEach((item) => {
+        const n = Number(item.amount);
+        if (!Number.isNaN(n)) used += n;
+      });
+      used = Math.round(used * 100) / 100;
+      const left = Math.round((total - used) * 100) / 100;
+      document.getElementById('splitUsed').textContent = '¥' + used.toFixed(2);
+      document.getElementById('splitLeft').textContent = '¥' + left.toFixed(2);
+    }
+
+    function confirmSplit() {
+      const row = invoices.find((r) => r.id === splittingId);
+      if (!row) return;
+      // 再次校验：防止打开弹窗后备注被改成已线下开票
+      if (!assertNoOffline([row])) return;
+
+      if (splitRows.length < 2) {
+        toast('拆分数据不能为空，且至少需要拆分成两份~');
+        return;
+      }
+
+      for (const item of splitRows) {
+        const amt = Number(item.amount);
+        const qty = Number(item.quantity);
+        if (!item.amount || Number.isNaN(amt) || amt <= 0) {
+          toast('拆分的发票金额必须大于 0 ~');
+          return;
+        }
+        if (!item.quantity || Number.isNaN(qty) || qty <= 0) {
+          toast('拆分的发票数量必须大于 0 ~');
+          return;
+        }
+      }
+
+      const used = splitRows.reduce((s, item) => s + Number(item.amount), 0);
+      const total = Number(row.amount_incl_tax);
+      if (Math.abs(used - total) > 0.001) {
+        toast('拆分金额合计需等于原发票含税金额~');
+        return;
+      }
+
+      toast('拆分成功（原型模拟）', 'ok');
+      closeSplitModal();
+    }
+
+    function openRemarkModal(id) {
+      const row = invoices.find((r) => r.id === id);
+      if (!row) return;
+      editingId = id;
+
+      offlineActive = hasOfflineMark(row.remark);
+      const input = document.getElementById('remarkInput');
+      // 文本区只展示手写内容，椭圆标签单独展示
+      input.value = stripOfflineMark(row.remark);
+      syncOfflineUi();
+      updateCount();
+
+      document.getElementById('remarkMask').classList.add('show');
+      input.focus();
+    }
+
+    function closeRemarkModal() {
+      document.getElementById('remarkMask').classList.remove('show');
+      editingId = null;
+      offlineActive = false;
+    }
+
+    function updateCount() {
+      const free = document.getElementById('remarkInput').value;
+      const total = composeRemark(free, offlineActive).length;
+      document.getElementById('remarkCount').textContent = total;
+    }
+
+    function syncOfflineUi() {
+      document.getElementById('offlineCheck').checked = offlineActive;
+      document.getElementById('remarkTags').classList.toggle('show', offlineActive);
+    }
+
+    function onRemarkInput() {
+      updateCount();
+    }
+
+    function onOfflineToggle() {
+      offlineActive = document.getElementById('offlineCheck').checked;
+      syncOfflineUi();
+      updateCount();
+      document.getElementById('remarkInput').focus();
+    }
+
+    function clearOfflineMark() {
+      offlineActive = false;
+      syncOfflineUi();
+      updateCount();
+      document.getElementById('remarkInput').focus();
+    }
+
+    function saveRemark() {
+      if (editingId == null) return;
+      const row = invoices.find((r) => r.id === editingId);
+      if (!row) return;
+
+      const free = document.getElementById('remarkInput').value;
+      const remark = composeRemark(free, offlineActive);
+      if (remark.length > 1000) {
+        toast('备注不能超过1000个字符~');
+        return;
+      }
+
+      row.remark = remark;
+      row.remark_editor_name = '当前用户(demo)';
+      row.remark_edit_time = formatNow();
+      renderTable();
+      closeRemarkModal();
+      toast('备注保存成功', 'ok');
+    }
+
+    function formatNow() {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+
+    function toast(msg, type = 'error') {
+      const wrap = document.getElementById('toastWrap');
+      const el = document.createElement('div');
+      el.className = 'toast' + (type === 'ok' ? ' ok' : type === 'info' ? ' info' : '');
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), 2600);
+    }
+
+    function openConfirm(title, bodyHtml, onOk) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmBody').innerHTML = bodyHtml;
+      const ok = document.getElementById('confirmOk');
+      ok.onclick = onOk;
+      document.getElementById('confirmMask').classList.add('show');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirmMask').classList.remove('show');
+    }
+
+    document.getElementById('remarkMask').addEventListener('click', (e) => {
+      if (e.target.id === 'remarkMask') closeRemarkModal();
+    });
+    document.getElementById('confirmMask').addEventListener('click', (e) => {
+      if (e.target.id === 'confirmMask') closeConfirm();
+    });
+    document.getElementById('splitMask').addEventListener('click', (e) => {
+      if (e.target.id === 'splitMask') closeSplitModal();
+    });
+
+    renderTable();
+  </script>
+
+  <script>
+    (function () {
+      function bindSider() {
+        document.querySelectorAll('.sider .menu-item[data-menu]').forEach(function (el) {
+          el.addEventListener('click', function () {
+            var key = el.getAttribute('data-menu');
+            var sub = document.querySelector('.sider .submenu[data-menu=&quot;' + key + '&quot;]');
+            if (!sub) return;
+            var open = el.classList.contains('open');
+            // 手风琴：先收起其他可展开菜单
+            document.querySelectorAll('.sider .menu-item[data-menu]').forEach(function (m) {
+              m.classList.remove('open');
+            });
+            document.querySelectorAll('.sider .submenu[data-menu]').forEach(function (s) {
+              s.classList.remove('show');
+            });
+            if (!open) {
+              el.classList.add('open');
+              sub.classList.add('show');
+            }
+          });
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindSider);
+      } else {
+        bindSider();
+      }
+    })();
+  </script>
+
+</body>
+</html>
+"></iframe>
+        <iframe id="frameTongyong" title="关联交易结果明细" srcdoc="<!DOCTYPE html>
+<html lang=&quot;zh-CN&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <title>通用关联交易 · 关联交易结果明细交互原型</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: #262626;
+      --muted: #8c8c8c;
+      --primary: #1677ff;
+      --orange: #fa8c16;
+      --danger: #ff4d4f;
+      --shadow: 0 2px 8px rgba(0,0,0,.06);
+      --radius: 8px;
+      --font: &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+    }
+    .layout { display: flex; min-height: 100vh; }
+    
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .crumb { font-size: 13px; color: var(--muted); }
+    .crumb b { color: var(--text); font-weight: 500; }
+    .user { font-size: 13px; color: #595959; }
+    .page { padding: 16px 20px 32px; }
+
+    .header h1 { margin: 0 0 6px; font-size: 18px; }
+    .header p { margin: 0 0 14px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    .filters, .toolbar, .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .filters {
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .filters .field label {
+      display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px;
+    }
+    .filters input, .filters select {
+      width: 100%; border: 1px solid var(--border); border-radius: 6px;
+      padding: 7px 10px; font: inherit; font-size: 13px; outline: none; background: #fff;
+    }
+    .filters input:focus, .filters select:focus { border-color: var(--primary); }
+    .filter-actions {
+      grid-column: 1 / -1;
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+
+    .toolbar {
+      padding: 12px 16px; margin-bottom: 12px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .toolbar .hint { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+    .btn {
+      appearance: none; border: 1px solid var(--border); background: #fff;
+      color: var(--text); border-radius: 6px; padding: 6px 14px;
+      font-size: 13px; cursor: pointer; line-height: 1.4;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn.primary:hover:not(:disabled) { filter: brightness(.95); color: #fff; }
+    .btn.orange { background: var(--orange); border-color: var(--orange); color: #fff; }
+    .btn.orange:hover:not(:disabled) { filter: brightness(.95); color: #fff; }
+    .btn:disabled {
+      opacity: .45; cursor: not-allowed; color: #bfbfbf;
+      border-color: #f0f0f0; background: #f5f5f5;
+    }
+    .btn.orange:disabled, .btn.primary:disabled {
+      background: #f5f5f5; border-color: #f0f0f0; color: #bfbfbf;
+    }
+
+    .card { overflow: hidden; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td {
+      padding: 10px 8px; border-bottom: 1px solid var(--border);
+      text-align: left; vertical-align: top; white-space: nowrap;
+    }
+    th { background: #fafafa; color: #595959; font-weight: 500; position: sticky; top: 0; z-index: 1; }
+    tr:hover td { background: #fafcff; }
+    tr.selected td { background: #e6f4ff; }
+    .muted { color: var(--muted); }
+    .wrap { white-space: normal; max-width: 180px; line-height: 1.4; }
+    .tag {
+      display: inline-block; padding: 1px 8px; border-radius: 4px;
+      font-size: 12px; background: #f5f5f5; color: #595959;
+    }
+    .tag.pending { background: #fff7e6; color: #d48806; }
+    .tag.approved { background: #f6ffed; color: #389e0d; }
+    .tag.rejected { background: #fff1f0; color: #cf1322; }
+    .pager {
+      padding: 12px 16px; display: flex; justify-content: space-between;
+      align-items: center; font-size: 13px; color: #595959;
+      border-top: 1px solid var(--border);
+    }
+
+    .legend {
+      margin-top: 14px; padding: 14px 16px; background: #fff;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 13px; color: #595959; line-height: 1.7;
+    }
+    .legend strong { color: var(--text); }
+    .legend code {
+      background: #f5f5f5; padding: 1px 6px; border-radius: 4px; font-size: 12px;
+    }
+
+    .mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+    }
+    .mask.show { display: flex; }
+    .modal {
+      width: min(560px, 100%); background: #fff; border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.18); overflow: hidden;
+    }
+    .modal.confirm { width: min(420px, 100%); }
+    .modal-hd {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 16px; font-weight: 600;
+    }
+    .modal-bd { padding: 20px; font-size: 14px; line-height: 1.7; }
+    .modal-ft {
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .close-x {
+      border: none; background: transparent; font-size: 18px;
+      cursor: pointer; color: var(--muted);
+    }
+    .upload-row { margin-bottom: 16px; }
+    .upload-row label.field {
+      display: block; margin-bottom: 8px; font-size: 13px; color: #595959;
+    }
+    .upload-row .req { color: var(--danger); margin-right: 2px; }
+    .upload-box {
+      border: 1px dashed #d9d9d9; border-radius: 8px; padding: 16px;
+      background: #fafafa; text-align: center;
+    }
+    .upload-box input { display: none; }
+    .file-name { margin-top: 8px; font-size: 12px; color: #595959; word-break: break-all; }
+    .tip { margin-top: 8px; font-size: 12px; color: var(--muted); }
+
+    .toast-wrap {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 1100; display: flex; flex-direction: column; gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: #fff; border: 1px solid #ffccc7; color: #cf1322;
+      padding: 10px 16px; border-radius: 8px; box-shadow: var(--shadow);
+      font-size: 13px; min-width: 280px; text-align: center;
+    }
+    .toast.ok { border-color: #b7eb8f; color: #389e0d; }
+    .toast.info { border-color: #91caff; color: #0958d9; }
+
+    @media (max-width: 1100px) {
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sider { display: none; }
+    }
+
+    .layout { display: flex; min-height: 100vh; }
+    .sider {
+      width: 232px;
+      background: #001529;
+      color: rgba(255,255,255,.75);
+      padding: 0 0 24px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sider .brand {
+      color: #fff; font-weight: 600; padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex; align-items: center; gap: 8px; font-size: 15px;
+    }
+    .sider .menu-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px; font-size: 13px; cursor: pointer;
+      color: rgba(255,255,255,.75); user-select: none;
+    }
+    .sider .menu-item .arrow {
+      margin-left: auto; font-size: 10px; opacity: .55;
+      transition: transform .15s ease;
+    }
+    .sider .menu-item.open { color: #fff; }
+    .sider .menu-item.open .arrow { transform: rotate(180deg); }
+    .sider .menu-item:hover { color: #fff; background: rgba(255,255,255,.04); }
+    .sider .menu-item.active-root {
+      color: #fff; background: rgba(255,255,255,.06);
+    }
+    .sider .submenu { display: none; background: #000c17; }
+    .sider .submenu.show { display: block; }
+    .sider .submenu .sub-item {
+      padding: 10px 20px 10px 48px; font-size: 13px;
+      color: rgba(255,255,255,.65); cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      border-right: 3px solid transparent;
+    }
+    .sider .submenu .sub-item:hover { color: #fff; }
+    .sider .submenu .sub-item.active {
+      color: #faad14;
+      background: #112a45;
+      border-right-color: #faad14;
+    }
+    .sider .submenu .dot {
+      width: 14px; height: 14px; border: 1px solid currentColor;
+      border-radius: 50%; display: inline-flex; align-items: center;
+      justify-content: center; font-size: 10px; flex-shrink: 0;
+    }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--border, #e8e8e8);
+      padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .crumb { font-size: 13px; color: #8c8c8c; }
+    .user { font-size: 13px; color: #595959; }
+
+  
+    .layout, .content-root { display: block !important; min-height: auto !important; }
+    .sider { display: none !important; }
+    .main, .main-content { display: block !important; }
+    .topbar { display: none !important; }
+    body { background: #f0f2f5; }
+    .page { padding: 16px 20px 32px; }
+
+
+
+    /* 订单导入弹窗 - Ant Design 风格 */
+    .mask .modal.import-modal { width: min(520px, 100%); border-radius: 2px; }
+    .import-modal .modal-hd {
+      padding: 16px 24px; font-size: 16px; font-weight: 500;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .import-modal .modal-bd { padding: 24px 24px 8px; }
+    .import-modal .modal-ft {
+      padding: 10px 16px; border-top: 1px solid #f0f0f0;
+      background: #fff;
+    }
+    .antd-form .form-item {
+      display: flex; align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .antd-form .form-label {
+      width: 100px; flex-shrink: 0;
+      text-align: right; padding: 5px 12px 0 0;
+      font-size: 14px; color: rgba(0,0,0,.85); line-height: 1.5;
+    }
+    .antd-form .form-label .req {
+      color: #ff4d4f; font-family: SimSun, sans-serif; margin-right: 4px;
+    }
+    .antd-form .form-control { flex: 1; min-width: 0; padding-top: 4px; }
+    .antd-form .link {
+      color: #1890ff; font-size: 14px; cursor: pointer;
+      background: none; border: none; padding: 0; font: inherit;
+    }
+    .antd-form .link:hover { color: #40a9ff; }
+    .antd-form .select-file {
+      display: inline-block;
+      height: 32px; line-height: 30px;
+      padding: 0 15px;
+      font-size: 14px;
+      color: #fff;
+      background: #1890ff;
+      border: 1px solid #1890ff;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .antd-form .select-file:hover { background: #40a9ff; border-color: #40a9ff; }
+    .antd-form input[type=file] { display: none; }
+    .antd-form .file-name {
+      display: inline-block; margin-left: 12px;
+      font-size: 13px; color: rgba(0,0,0,.45);
+      vertical-align: middle; max-width: 220px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .antd-form .tips {
+      margin: 0; padding: 0; list-style: none;
+      font-size: 12px; color: rgba(0,0,0,.45); line-height: 1.8;
+    }
+    .import-modal .btn {
+      height: 32px; padding: 0 15px; border-radius: 2px; font-size: 14px;
+    }
+    .import-modal .btn.primary {
+      background: #1890ff; border-color: #1890ff;
+    }
+    .import-modal .btn.primary:disabled {
+      color: #fff; background: #a0cfff; border-color: #a0cfff; opacity: 1; cursor: not-allowed;
+    }
+</style>
+</head>
+<body>
+  <div class=&quot;content-root&quot;>
+    
+
+    <div class=&quot;main-content&quot;>
+      <div class=&quot;user&quot;>演示账号 (demo)</div>
+      </div>
+
+      <div class=&quot;page&quot;>
+        <div class=&quot;header&quot;>
+          <h1>关联交易结果明细</h1>
+          <p>按需求调整按钮：导入关联交易结果（必传计算底稿）、下载结果明细、下载计算底稿、提交审核（同批次全选校验）。</p>
+        </div>
+
+        <div class=&quot;filters&quot;>
+          <div class=&quot;field&quot;>
+            <label>账期</label>
+            <input id=&quot;fMonth&quot; value=&quot;2020-07&quot; />
+          </div>
+          <div class=&quot;field&quot;>
+            <label>关联交易类型</label>
+            <select id=&quot;fType&quot;>
+              <option value=&quot;&quot;>请选择关联交易类型</option>
+              <option>运营服务费</option>
+              <option>品牌使用费</option>
+              <option>技术服务费</option>
+            </select>
+          </div>
+          <div class=&quot;field&quot;>
+            <label>创建人</label>
+            <input placeholder=&quot;请选择创建人&quot; />
+          </div>
+          <div class=&quot;field&quot;>
+            <label>交易主体</label>
+            <input placeholder=&quot;交易主体&quot; />
+          </div>
+          <div class=&quot;field&quot;>
+            <label>受益主体</label>
+            <input placeholder=&quot;受益主体&quot; />
+          </div>
+          <div class=&quot;field&quot;>
+            <label>上传时间起</label>
+            <input type=&quot;date&quot; />
+          </div>
+          <div class=&quot;field&quot;>
+            <label>上传时间止</label>
+            <input type=&quot;date&quot; />
+          </div>
+          <div class=&quot;field&quot;>
+            <label>维护状态</label>
+            <select>
+              <option value=&quot;&quot;>请选择</option>
+              <option value=&quot;PENDING&quot;>待审核</option>
+              <option value=&quot;APPROVED&quot;>审核通过</option>
+              <option value=&quot;REJECTED&quot;>审核驳回</option>
+              <option value=&quot;UNAUDITED&quot;>反审核</option>
+            </select>
+          </div>
+          <div class=&quot;filter-actions&quot;>
+            <button class=&quot;btn&quot; onclick=&quot;resetFilter()&quot;>重置</button>
+            <button class=&quot;btn primary&quot; onclick=&quot;toast('查询（原型模拟）', 'info')&quot;>查询</button>
+          </div>
+        </div>
+
+        <div class=&quot;toolbar&quot;>
+          <button class=&quot;btn orange&quot; onclick=&quot;openImportModal()&quot;>导入</button>
+          <button class=&quot;btn&quot; onclick=&quot;toast('审核（现网能力，原型保留入口）', 'info')&quot;>审核</button>
+          <button class=&quot;btn&quot; onclick=&quot;toast('反审核（现网能力，原型保留入口）', 'info')&quot;>反审核</button>
+          <button class=&quot;btn primary&quot; onclick=&quot;downloadDetails()&quot;>下载结果明细</button>
+          <button class=&quot;btn&quot; id=&quot;btnDownloadDraft&quot; disabled onclick=&quot;downloadDrafts()&quot;>下载计算底稿</button>
+          <button class=&quot;btn&quot; id=&quot;btnSubmitAudit&quot; disabled onclick=&quot;submitAudit()&quot;>提交审核</button>
+          <button class=&quot;btn&quot; onclick=&quot;toast('删除（现网能力，原型保留入口）', 'info')&quot;>删除</button>
+          <span class=&quot;hint&quot;>勾选后「下载计算底稿 / 提交审核」可用；提交审核需同批次全选</span>
+        </div>
+
+        <div class=&quot;card&quot;>
+          <div class=&quot;table-wrap&quot;>
+            <table>
+              <thead>
+                <tr>
+                  <th><input type=&quot;checkbox&quot; id=&quot;checkAll&quot; onchange=&quot;toggleAll(this.checked)&quot; /></th>
+                  <th>序号</th>
+                  <th>周期</th>
+                  <th>导入批次</th>
+                  <th>关联交易类型</th>
+                  <th>交易主体EAS编码</th>
+                  <th>交易主体名称</th>
+                  <th>纳税资质</th>
+                  <th>受益主体EAS编码</th>
+                  <th>受益主体名称</th>
+                  <th>纳税资质</th>
+                  <th>商品/费用</th>
+                  <th>不含税金额</th>
+                  <th>维护状态</th>
+                  <th>计算底稿</th>
+                </tr>
+              </thead>
+              <tbody id=&quot;tbody&quot;></tbody>
+            </table>
+          </div>
+          <div class=&quot;pager&quot;>
+            <div>共 <span id=&quot;totalCount&quot;>0</span> 条</div>
+            <div>100条/页 · 原型仅展示当前页数据</div>
+          </div>
+        </div>
+
+        <div class=&quot;legend&quot;>
+          <div><strong>按钮逻辑（对齐需求）</strong></div>
+          <div>1. 点工具栏 <code>导入</code> 打开「订单导入」弹窗：必传 <b>导入关联交易结果</b>（xls/xlsx）+ <b>导入计算底稿</b>（不限类型）。</div>
+          <div>2. <code>下载结果明细</code>：下载当前筛选下的结果明细。</div>
+          <div>3. <code>下载计算底稿</code>：默认禁用；勾选后可用；若选中多类/多底稿，依次下载。</div>
+          <div>4. <code>提交审核</code>：默认禁用；勾选后可用；同一导入批次必须全选，否则提示「同一批明细尚未勾选完毕」；确认文案：「提交后会发起BPM审核流程，请确认操作无误」。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- 导入弹窗 -->
+  <div class=&quot;mask&quot; id=&quot;importMask&quot;>
+    <div class=&quot;modal import-modal&quot;>
+      <div class=&quot;modal-hd&quot;>
+        <span>订单导入</span>
+        <button class=&quot;close-x&quot; onclick=&quot;closeImportModal()&quot;>×</button>
+      </div>
+      <div class=&quot;modal-bd&quot;>
+        <div class=&quot;antd-form&quot;>
+          <div class=&quot;form-item&quot;>
+            <div class=&quot;form-label&quot;>导入模版</div>
+            <div class=&quot;form-control&quot;>
+              <button type=&quot;button&quot; class=&quot;link&quot; onclick=&quot;toast('开始下载导入模版（原型模拟）', 'ok')&quot;>下载导入模版</button>
+            </div>
+          </div>
+
+          <div class=&quot;form-item&quot;>
+            <div class=&quot;form-label&quot;><span class=&quot;req&quot;>*</span>导入关联交易结果</div>
+            <div class=&quot;form-control&quot;>
+              <label class=&quot;select-file&quot; for=&quot;fileResult&quot;>选择文件</label>
+              <input id=&quot;fileResult&quot; type=&quot;file&quot; accept=&quot;.xls,.xlsx&quot; onchange=&quot;onPickFile('result', this)&quot; />
+              <span class=&quot;file-name&quot; id=&quot;nameResult&quot;></span>
+              <ul class=&quot;tips&quot;>
+                <li>1. 请按照模板要求进行导入;</li>
+                <li>2. 仅支持导入拓展名为.xls,.xlsx的文件类型;</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class=&quot;form-item&quot;>
+            <div class=&quot;form-label&quot;><span class=&quot;req&quot;>*</span>导入计算底稿</div>
+            <div class=&quot;form-control&quot;>
+              <label class=&quot;select-file&quot; for=&quot;fileDraft&quot;>选择文件</label>
+              <input id=&quot;fileDraft&quot; type=&quot;file&quot; onchange=&quot;onPickFile('draft', this)&quot; />
+              <span class=&quot;file-name&quot; id=&quot;nameDraft&quot;></span>
+              <ul class=&quot;tips&quot;>
+                <li>1. 计算底稿必传，不限制文件类型;</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class=&quot;modal-ft&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;closeImportModal()&quot;>取消</button>
+        <button class=&quot;btn primary&quot; id=&quot;btnDoImport&quot; disabled onclick=&quot;confirmImport()&quot;>导入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认弹窗 -->
+  <div class=&quot;mask&quot; id=&quot;confirmMask&quot;>
+    <div class=&quot;modal confirm&quot;>
+      <div class=&quot;modal-hd&quot;>
+        <span id=&quot;confirmTitle&quot;>确认</span>
+        <button class=&quot;close-x&quot; onclick=&quot;closeConfirm()&quot;>×</button>
+      </div>
+      <div class=&quot;modal-bd&quot; id=&quot;confirmBody&quot;></div>
+      <div class=&quot;modal-ft&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;closeConfirm()&quot;>取消</button>
+        <button class=&quot;btn primary&quot; id=&quot;confirmOk&quot;>确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class=&quot;toast-wrap&quot; id=&quot;toastWrap&quot;></div>
+
+  <script>
+    /**
+     * 模拟数据：
+     * - import_batch_id：同一批导入共用
+     * - draft_file：导入时上传的计算底稿文件名
+     * 批次 A：3 条（运营服务费）
+     * 批次 B：2 条（品牌使用费）——与 A 底稿不同，用于验证多底稿依次下载
+     * 批次 C：1 条
+     */
+    let rows = [
+      {
+        id: 1, month: '202307', import_batch_id: 'BATCH-A',
+        transaction_type: '运营服务费',
+        legal_entity_code: 'L100001', legal_entity_name: '北京学而思网络科技有限公司',
+        tax_qualify: '一般纳税人-一般征收',
+        benefit_legal_entity_code: 'ZW01', benefit_legal_entity_name: '北京世纪好未来教育科技有限公司',
+        benefit_tax_qualify: '一般纳税人-一般征收',
+        goods_name: '运营服务', amount: '1200.00',
+        check_status: 'PENDING', check_status_cn: '待审核',
+        draft_file: '运营服务费_计算底稿_A.xlsx'
+      },
+      {
+        id: 2, month: '202307', import_batch_id: 'BATCH-A',
+        transaction_type: '运营服务费',
+        legal_entity_code: 'L100002', legal_entity_name: '上海乐双文教育科技有限公司',
+        tax_qualify: '一般纳税人-一般征收',
+        benefit_legal_entity_code: 'ZW01', benefit_legal_entity_name: '北京世纪好未来教育科技有限公司',
+        benefit_tax_qualify: '一般纳税人-一般征收',
+        goods_name: '运营服务', amount: '800.00',
+        check_status: 'PENDING', check_status_cn: '待审核',
+        draft_file: '运营服务费_计算底稿_A.xlsx'
+      },
+      {
+        id: 3, month: '202307', import_batch_id: 'BATCH-A',
+        transaction_type: '运营服务费',
+        legal_entity_code: 'L100003', legal_entity_name: '广州市乐博教育咨询有限公司',
+        tax_qualify: '小规模纳税人',
+        benefit_legal_entity_code: 'L300601', benefit_legal_entity_name: '广州快乐米教育咨询有限公司',
+        benefit_tax_qualify: '一般纳税人-一般征收',
+        goods_name: '运营服务', amount: '560.00',
+        check_status: 'PENDING', check_status_cn: '待审核',
+        draft_file: '运营服务费_计算底稿_A.xlsx'
+      },
+      {
+        id: 4, month: '202307', import_batch_id: 'BATCH-B',
+        transaction_type: '品牌使用费',
+        legal_entity_code: 'L200001', legal_entity_name: '深圳市星桐科技有限公司',
+        tax_qualify: '一般纳税人-一般征收',
+        benefit_legal_entity_code: 'BJ09', benefit_legal_entity_name: '北京好未来图书有限公司',
+        benefit_tax_qualify: '一般纳税人-一般征收',
+        goods_name: '品牌授权', amount: '3000.00',
+        check_status: 'PENDING', check_status_cn: '待审核',
+        draft_file: '品牌使用费_计算底稿_B.pdf'
+      },
+      {
+        id: 5, month: '202307', import_batch_id: 'BATCH-B',
+        transaction_type: '品牌使用费',
+        legal_entity_code: 'L200002', legal_entity_name: '杭州乐读教育科技有限公司',
+        tax_qualify: '一般纳税人-一般征收',
+        benefit_legal_entity_code: 'BJ09', benefit_legal_entity_name: '北京好未来图书有限公司',
+        benefit_tax_qualify: '一般纳税人-一般征收',
+        goods_name: '品牌授权', amount: '2100.00',
+        check_status: 'PENDING', check_status_cn: '待审核',
+        draft_file: '品牌使用费_计算底稿_B.pdf'
+      },
+      {
+        id: 6, month: '202308', import_batch_id: 'BATCH-C',
+        transaction_type: '技术服务费',
+        legal_entity_code: 'XF01', legal_entity_name: '北京新唐思创教育科技有限公司',
+        tax_qualify: '一般纳税人-一般征收',
+        benefit_legal_entity_code: 'TJ02', benefit_legal_entity_name: '天津市学而思教育信息咨询有限公司',
+        benefit_tax_qualify: '一般纳税人-一般征收',
+        goods_name: '技术服务', amount: '999.00',
+        check_status: 'APPROVED', check_status_cn: '审核通过',
+        draft_file: '技术服务费_计算底稿_C.docx'
+      }
+    ];
+
+    let selectedIds = new Set();
+    let picked = { result: null, draft: null };
+
+    function statusClass(s) {
+      if (s === 'PENDING') return 'pending';
+      if (s === 'APPROVED') return 'approved';
+      if (s === 'REJECTED') return 'rejected';
+      return '';
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&amp;/g, '&amp;amp;')
+        .replace(/</g, '&amp;lt;')
+        .replace(/>/g, '&amp;gt;')
+        .replace(/&quot;/g, '&amp;quot;');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = rows.map((row, idx) => {
+        const checked = selectedIds.has(row.id) ? 'checked' : '';
+        const selected = selectedIds.has(row.id) ? 'selected' : '';
+        return `
+          <tr class=&quot;${selected}&quot;>
+            <td><input type=&quot;checkbox&quot; ${checked} onchange=&quot;toggleRow(${row.id}, this.checked)&quot; /></td>
+            <td>${idx + 1}</td>
+            <td>${row.month}</td>
+            <td><code>${row.import_batch_id}</code></td>
+            <td class=&quot;wrap&quot;>${escapeHtml(row.transaction_type)}</td>
+            <td>${escapeHtml(row.legal_entity_code)}</td>
+            <td class=&quot;wrap&quot;>${escapeHtml(row.legal_entity_name)}</td>
+            <td class=&quot;wrap&quot;>${escapeHtml(row.tax_qualify)}</td>
+            <td>${escapeHtml(row.benefit_legal_entity_code)}</td>
+            <td class=&quot;wrap&quot;>${escapeHtml(row.benefit_legal_entity_name)}</td>
+            <td class=&quot;wrap&quot;>${escapeHtml(row.benefit_tax_qualify)}</td>
+            <td class=&quot;wrap&quot;>${escapeHtml(row.goods_name)}</td>
+            <td>${row.amount}</td>
+            <td><span class=&quot;tag ${statusClass(row.check_status)}&quot;>${row.check_status_cn}</span></td>
+            <td class=&quot;wrap muted&quot;>${escapeHtml(row.draft_file)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('totalCount').textContent = rows.length;
+      const all = rows.length > 0 &amp;&amp; rows.every((r) => selectedIds.has(r.id));
+      document.getElementById('checkAll').checked = all;
+      syncActionButtons();
+    }
+
+    function syncActionButtons() {
+      const has = selectedIds.size > 0;
+      document.getElementById('btnDownloadDraft').disabled = !has;
+      document.getElementById('btnSubmitAudit').disabled = !has;
+    }
+
+    function toggleAll(checked) {
+      selectedIds = checked ? new Set(rows.map((r) => r.id)) : new Set();
+      renderTable();
+    }
+
+    function toggleRow(id, checked) {
+      if (checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      renderTable();
+    }
+
+    function getSelectedRows() {
+      return rows.filter((r) => selectedIds.has(r.id));
+    }
+
+    function resetFilter() {
+      document.getElementById('fMonth').value = '2020-07';
+      document.getElementById('fType').value = '';
+      toast('已重置筛选（原型）', 'info');
+    }
+
+    /* -------- 导入 -------- */
+    function openImportModal() {
+      picked = { result: null, draft: null };
+      document.getElementById('fileResult').value = '';
+      document.getElementById('fileDraft').value = '';
+      document.getElementById('nameResult').textContent = '';
+      document.getElementById('nameDraft').textContent = '';
+      syncImportBtn();
+      document.getElementById('importMask').classList.add('show');
+    }
+
+    function syncImportBtn() {
+      var btn = document.getElementById('btnDoImport');
+      if (!btn) return;
+      btn.disabled = !(picked.result &amp;&amp; picked.draft);
+    }
+
+    function closeImportModal() {
+      document.getElementById('importMask').classList.remove('show');
+    }
+
+    function onPickFile(whichtype, input) {
+      const file = input.files &amp;&amp; input.files[0];
+      if (!file) return;
+      if (whichtype === 'result') {
+        picked.result = file;
+        document.getElementById('nameResult').textContent = file.name;
+      } else {
+        picked.draft = file;
+        document.getElementById('nameDraft').textContent = file.name;
+      }
+      syncImportBtn();
+    }
+
+    function confirmImport() {
+      if (!picked.result) {
+        toast('请选择「导入关联交易结果」文件');
+        return;
+      }
+      if (!picked.draft) {
+        toast('请选择「导入计算底稿」文件');
+        return;
+      }
+
+      const batchId = 'BATCH-' + Date.now().toString().slice(-6);
+      const newId = Math.max(...rows.map((r) => r.id)) + 1;
+      rows.unshift({
+        id: newId,
+        month: '202307',
+        import_batch_id: batchId,
+        transaction_type: '导入演示类型',
+        legal_entity_code: 'L999001',
+        legal_entity_name: '导入演示主体A',
+        tax_qualify: '一般纳税人-一般征收',
+        benefit_legal_entity_code: 'L999002',
+        benefit_legal_entity_name: '导入演示主体B',
+        benefit_tax_qualify: '一般纳税人-一般征收',
+        goods_name: '演示费用',
+        amount: '100.00',
+        check_status: 'PENDING',
+        check_status_cn: '待审核',
+        draft_file: picked.draft.name
+      });
+
+      closeImportModal();
+      renderTable();
+      toast(`导入成功：结果=${picked.result.name}，底稿=${picked.draft.name}`, 'ok');
+    }
+
+    /* -------- 下载结果明细 -------- */
+    function downloadDetails() {
+      toast('开始下载结果明细（原型模拟）', 'ok');
+    }
+
+    /* -------- 下载计算底稿 -------- */
+    function downloadDrafts() {
+      const selected = getSelectedRows();
+      if (!selected.length) {
+        toast('请先勾选明细', 'info');
+        return;
+      }
+
+      // 按底稿文件去重，多文件依次下载
+      const files = [];
+      const seen = new Set();
+      selected.forEach((r) => {
+        if (!seen.has(r.draft_file)) {
+          seen.add(r.draft_file);
+          files.push(r.draft_file);
+        }
+      });
+
+      let i = 0;
+      const run = () => {
+        if (i >= files.length) {
+          toast(`计算底稿下载完成，共 ${files.length} 个文件`, 'ok');
+          return;
+        }
+        toast(`正在下载（${i + 1}/${files.length}）：${files[i]}`, 'info');
+        i += 1;
+        setTimeout(run, 700);
+      };
+      run();
+    }
+
+    /* -------- 提交审核 -------- */
+    function submitAudit() {
+      const selected = getSelectedRows();
+      if (!selected.length) {
+        toast('请先勾选明细', 'info');
+        return;
+      }
+
+      // 同一批明细必须全选：按 import_batch_id 校验
+      const touchedBatches = [...new Set(selected.map((r) => r.import_batch_id))];
+      for (const batchId of touchedBatches) {
+        const batchAll = rows.filter((r) => r.import_batch_id === batchId);
+        const batchSelected = selected.filter((r) => r.import_batch_id === batchId);
+        if (batchSelected.length < batchAll.length) {
+          toast('同一批明细尚未勾选完毕');
+          return;
+        }
+      }
+
+      openConfirm(
+        '提交审核',
+        '提交后会发起BPM审核流程，请确认操作无误',
+        () => {
+          toast(`已提交审核（原型），涉及批次：${touchedBatches.join('、')}`, 'ok');
+          closeConfirm();
+        }
+      );
+    }
+
+    function openConfirm(title, body, onOk) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmBody').textContent = body;
+      document.getElementById('confirmOk').onclick = onOk;
+      document.getElementById('confirmMask').classList.add('show');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirmMask').classList.remove('show');
+    }
+
+    function toast(msg, type = 'error') {
+      const wrap = document.getElementById('toastWrap');
+      const el = document.createElement('div');
+      el.className = 'toast' + (type === 'ok' ? ' ok' : type === 'info' ? ' info' : '');
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), 2600);
+    }
+
+    document.getElementById('importMask').addEventListener('click', (e) => {
+      if (e.target.id === 'importMask') closeImportModal();
+    });
+    document.getElementById('confirmMask').addEventListener('click', (e) => {
+      if (e.target.id === 'confirmMask') closeConfirm();
+    });
+
+    renderTable();
+  </script>
+
+  <script>
+    (function () {
+      function bindSider() {
+        document.querySelectorAll('.sider .menu-item[data-menu]').forEach(function (el) {
+          el.addEventListener('click', function () {
+            var key = el.getAttribute('data-menu');
+            var sub = document.querySelector('.sider .submenu[data-menu=&quot;' + key + '&quot;]');
+            if (!sub) return;
+            var open = el.classList.contains('open');
+            // 手风琴：先收起其他可展开菜单
+            document.querySelectorAll('.sider .menu-item[data-menu]').forEach(function (m) {
+              m.classList.remove('open');
+            });
+            document.querySelectorAll('.sider .submenu[data-menu]').forEach(function (s) {
+              s.classList.remove('show');
+            });
+            if (!open) {
+              el.classList.add('open');
+              sub.classList.add('show');
+            }
+          });
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindSider);
+      } else {
+        bindSider();
+      }
+    })();
+  </script>
+
+</body>
+</html>
+"></iframe>
+        <iframe id="framePeiyouResult" title="培优技术关联交易" srcdoc="<!DOCTYPE html>
+<html lang=&quot;zh-CN&quot;>
+<head>
+  <meta charset=&quot;UTF-8&quot; />
+  <meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; />
+  <title>培优技术关联交易 · 确认关联交易结果</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e8e8e8;
+      --text: #262626;
+      --muted: #8c8c8c;
+      --primary: #1677ff;
+      --danger: #ff4d4f;
+      --success: #52c41a;
+      --warning: #faad14;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .04);
+      --radius: 2px;
+      --font: &quot;PingFang SC&quot;, &quot;Microsoft YaHei&quot;, system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+    }
+    .page { padding: 16px 20px 32px; }
+    .crumb {
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .crumb b { color: var(--text); font-weight: 500; }
+    .header {
+      margin-bottom: 12px;
+    }
+    .header h1 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .header p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--muted);
+      max-width: 1200px;
+    }
+    .banner {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border: 1px solid #ffe58f;
+      background: #fffbe6;
+      color: #ad6800;
+      border-radius: 2px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .filters, .toolbar, .card, .legend {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .filters {
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 120px repeat(4, minmax(0, 1fr)) auto;
+      gap: 8px 10px;
+      margin-bottom: 8px;
+    }
+    .field label {
+      display: none;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .field input, .field select {
+      width: 100%;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      outline: none;
+      background: #fff;
+      font: inherit;
+      font-size: 13px;
+    }
+    .field input:focus, .field select:focus { border-color: var(--primary); }
+    .filter-actions {
+      display: flex;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .toolbar {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .toolbar .hint {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 2px;
+      height: 32px;
+      padding: 0 15px;
+      font-size: 14px;
+      line-height: 30px;
+      cursor: pointer;
+      transition: .15s ease;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+    .btn.primary,
+    .btn.success { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn.primary:hover:not(:disabled) { color: #fff; filter: brightness(.96); }
+    .btn.danger { border-color: #ffccc7; color: var(--danger); }
+    .btn.danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .btn.success:hover:not(:disabled) { color: #fff; filter: brightness(.96); }
+    .btn:disabled {
+      background: #f5f5f5;
+      border-color: #f0f0f0;
+      color: #bfbfbf;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+    .card { overflow: hidden; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td {
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    th {
+      background: #fafafa;
+      color: #595959;
+      font-weight: 500;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    tr:hover td { background: #fafcff; }
+    tr.selected td { background: #e6f4ff; }
+    tr.disabled-row td { color: #bfbfbf; background: #fcfcfc; }
+    .wrap { white-space: normal; line-height: 1.45; max-width: 180px; }
+    .money { font-variant-numeric: tabular-nums; }
+    .tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #f5f5f5;
+      color: #595959;
+    }
+    .tag.reviewed { background: #f6ffed; color: #389e0d; }
+    .tag.unreviewed { background: #fff7e6; color: #d48806; }
+    .tag.confirmed { background: #e6f4ff; color: #0958d9; }
+    .tag.unconfirmed { background: #fff1f0; color: #cf1322; }
+    .tag.v-fail, .tag.i-fail { background: #fff1f0; color: #cf1322; }
+    .tag.v-revoke { background: #fff7e6; color: #d48806; }
+    .tag.v-success, .tag.i-success { background: #f6ffed; color: #389e0d; }
+    .tag.i-pending { background: #e6f4ff; color: #1677ff; }
+    .tag.i-none { background: #f5f5f5; color: #8c8c8c; }
+    .tag.deleted { background: #f5f5f5; color: #8c8c8c; text-decoration: line-through; }
+    .pager {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #595959;
+      border-top: 1px solid var(--border);
+    }
+    .legend {
+      margin-top: 14px;
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #595959;
+      line-height: 1.7;
+      background: #fafafa;
+    }
+    .legend strong { color: var(--text); }
+    .legend code {
+      background: #f5f5f5;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 12px;
+    }
+    .legend ul {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+    .status-bar {
+      margin-bottom: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+      padding: 0 4px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+    .tab {
+      appearance: none;
+      border: none;
+      background: transparent;
+      height: 40px;
+      padding: 0 16px;
+      font: inherit;
+      font-size: 14px;
+      color: #595959;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--primary); }
+    .tab.active {
+      color: var(--primary);
+      font-weight: 500;
+      border-bottom-color: var(--primary);
+    }
+    .tab .count {
+      margin-left: 4px;
+      font-size: 12px;
+      color: #8c8c8c;
+    }
+    .tab.active .count { color: var(--primary); }
+    .money.offset-nonzero { color: #d48806; font-weight: 600; }
+    .summary-bar {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      background: #fafafa;
+      font-size: 13px;
+      color: #595959;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .summary-bar b { color: var(--text); font-variant-numeric: tabular-nums; }
+    .mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .mask.show { display: flex; }
+    .modal {
+      width: min(560px, 100%);
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .18);
+      overflow: hidden;
+    }
+    .modal.confirm { width: min(440px, 100%); }
+    .modal-hd {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .modal-bd {
+      padding: 18px 20px;
+      font-size: 14px;
+      line-height: 1.75;
+      color: #434343;
+    }
+    .modal-bd ul {
+      margin: 10px 0 0 18px;
+      padding: 0;
+    }
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+    }
+    .mini-table th,
+    .mini-table td {
+      padding: 10px 8px;
+      border: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      white-space: normal;
+      line-height: 1.6;
+    }
+    .mini-table th {
+      background: #fafafa;
+      color: #595959;
+      font-weight: 500;
+    }
+    .modal-ft {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .close-x {
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .toast-wrap {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .toast {
+      background: #fff;
+      border: 1px solid #ffccc7;
+      color: #cf1322;
+      padding: 10px 16px;
+      border-radius: 2px;
+      box-shadow: var(--shadow);
+      min-width: 280px;
+      max-width: 680px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .toast.ok { border-color: #b7eb8f; color: #389e0d; }
+    .toast.info { border-color: #91caff; color: #0958d9; }
+    @media (max-width: 1200px) {
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class=&quot;page&quot;>
+    <div class=&quot;filters&quot;>
+      <div class=&quot;field&quot;>
+        <select id=&quot;fMonth&quot; onchange=&quot;applyFilters()&quot; title=&quot;账期&quot;>
+          <option value=&quot;202411&quot;>202411</option>
+          <option value=&quot;202410&quot;>202410</option>
+        </select>
+      </div>
+      <div class=&quot;field&quot;>
+        <input id=&quot;fSubject&quot; placeholder=&quot;主体EAS编码/主体名称&quot; oninput=&quot;applyFilters()&quot; />
+      </div>
+      <div class=&quot;field&quot;>
+        <select id=&quot;fSource&quot; onchange=&quot;applyFilters()&quot; title=&quot;数据来源&quot;>
+          <option value=&quot;&quot;>数据来源(全部)</option>
+          <option value=&quot;系统&quot;>系统</option>
+          <option value=&quot;导入&quot;>导入</option>
+        </select>
+      </div>
+      <div class=&quot;field&quot;>
+        <select id=&quot;fReviewer&quot; onchange=&quot;applyFilters()&quot; title=&quot;审核状态&quot;>
+          <option value=&quot;&quot;>审核状态(全部)</option>
+          <option value=&quot;Y&quot;>已审核</option>
+          <option value=&quot;N&quot;>未审核</option>
+        </select>
+      </div>
+      <div class=&quot;field&quot;>
+        <select id=&quot;fConfirm&quot; onchange=&quot;applyFilters()&quot; title=&quot;确认状态&quot;>
+          <option value=&quot;&quot;>确认状态(全部)</option>
+          <option value=&quot;已确认&quot;>已确认</option>
+          <option value=&quot;未确认&quot;>未确认</option>
+        </select>
+      </div>
+      <div class=&quot;filter-actions&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;resetFilters()&quot;>重置</button>
+        <button class=&quot;btn primary&quot; onclick=&quot;toast('查询完成', 'info')&quot;>查询</button>
+      </div>
+    </div>
+
+    <div class=&quot;status-bar&quot;>
+      <span>当前会计账期：<b id=&quot;accountMonthText&quot;>202411</b></span>
+      <span>当前筛选账期：<b id=&quot;selectedMonthText&quot;>202411</b></span>
+    </div>
+
+    <div class=&quot;tabs&quot; id=&quot;resultTabs&quot;>
+      <button type=&quot;button&quot; class=&quot;tab active&quot; id=&quot;tabCurrent&quot; onclick=&quot;switchTab('current')&quot;>本期TP<span class=&quot;count&quot; id=&quot;countCurrent&quot;>0</span></button>
+      <button type=&quot;button&quot; class=&quot;tab&quot; id=&quot;tabOffset&quot; onclick=&quot;switchTab('offset')&quot; style=&quot;display:none&quot;>待冲销核对<span class=&quot;count&quot; id=&quot;countOffset&quot;>0</span></button>
+    </div>
+
+    <div class=&quot;toolbar&quot; id=&quot;toolbarCurrent&quot;>
+      <button class=&quot;btn primary&quot; id=&quot;btnConfirmTp&quot; onclick=&quot;handleConfirmTp()&quot;>确认本月TP结果</button>
+      <button class=&quot;btn primary&quot; id=&quot;btnCancelTp&quot; onclick=&quot;handleCancelTp()&quot;>取消确认</button>
+      <button class=&quot;btn&quot; onclick=&quot;toast('开始下载本期TP结果', 'ok')&quot;>下载TP结果</button>
+      <button class=&quot;btn primary&quot; id=&quot;btnReview&quot; onclick=&quot;handleReview()&quot;>TP结果审核</button>
+      <button class=&quot;btn danger&quot; id=&quot;btnUnreview&quot; onclick=&quot;handleUnreview()&quot;>TP结果反审核</button>
+      <button class=&quot;btn primary&quot; onclick=&quot;toast('批量导入', 'info')&quot;>导入</button>
+      <button class=&quot;btn&quot; onclick=&quot;toast('删除', 'info')&quot;>删除</button>
+    </div>
+    <div class=&quot;toolbar&quot; id=&quot;toolbarOffset&quot; style=&quot;display:none&quot;>
+      <button class=&quot;btn&quot; onclick=&quot;toast('开始下载待冲销核对数据', 'ok')&quot;>下载核对数据</button>
+    </div>
+
+    <div class=&quot;card&quot;>
+      <div class=&quot;table-wrap&quot;>
+        <table>
+          <thead>
+            <tr>
+              <th id=&quot;thCheck&quot;><input type=&quot;checkbox&quot; id=&quot;checkAll&quot; onchange=&quot;toggleAll(this.checked)&quot; /></th>
+              <th>ID</th>
+              <th>数据来源</th>
+              <th>期间</th>
+              <th>主体编码</th>
+              <th>主体名称</th>
+              <th>本期是否TP</th>
+              <th>收入</th>
+              <th>成本费用</th>
+              <th>1到上月入账累计TP</th>
+              <th>1到本月计算累计TP</th>
+              <th>本期实际入账TP</th>
+              <th>待冲销TP金额</th>
+              <th>TP前成本</th>
+              <th>TP前利润</th>
+              <th>TP前利润率</th>
+              <th>中位值</th>
+              <th>确认状态</th>
+              <th>审核状态</th>
+              <th>凭证状态</th>
+              <th>发票状态</th>
+              <th>审核批次</th>
+              <th>销方汇总组</th>
+              <th>审核人</th>
+              <th>审核时间</th>
+            </tr>
+          </thead>
+          <tbody id=&quot;tbody&quot;></tbody>
+        </table>
+      </div>
+      <div class=&quot;summary-bar&quot; id=&quot;summaryBar&quot;></div>
+      <div class=&quot;pager&quot;>
+        <div>共 <span id=&quot;totalCount&quot;>0</span> 条</div>
+        <div>100 条 / 页　1 2 3 4 5 6</div>
+      </div>
+    </div>
+  </div>
+
+  <div class=&quot;mask&quot; id=&quot;confirmMask&quot;>
+    <div class=&quot;modal confirm&quot;>
+      <div class=&quot;modal-hd&quot;>
+        <span id=&quot;confirmTitle&quot;>确认</span>
+        <button class=&quot;close-x&quot; onclick=&quot;closeConfirm()&quot;>×</button>
+      </div>
+      <div class=&quot;modal-bd&quot; id=&quot;confirmBody&quot;></div>
+      <div class=&quot;modal-ft&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;closeConfirm()&quot;>取消</button>
+        <button class=&quot;btn primary&quot; id=&quot;confirmOk&quot;>确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div class=&quot;mask&quot; id=&quot;groupMask&quot;>
+    <div class=&quot;modal&quot;>
+      <div class=&quot;modal-hd&quot;>
+        <span>同一审核批次未选齐</span>
+        <button class=&quot;close-x&quot; onclick=&quot;closeGroupModal()&quot;>×</button>
+      </div>
+      <div class=&quot;modal-bd&quot;>
+        需要选择同一审核批次的全部TP明细，是否全部选择？
+        <table class=&quot;mini-table&quot;>
+          <thead>
+            <tr>
+              <th>主体EAS编码</th>
+              <th>法律主体</th>
+              <th>北京新唐思创教育科技有限公司</th>
+              <th>北京世纪好未来教育科技有限公司</th>
+            </tr>
+          </thead>
+          <tbody id=&quot;groupMissingList&quot;></tbody>
+        </table>
+      </div>
+      <div class=&quot;modal-ft&quot;>
+        <button class=&quot;btn&quot; onclick=&quot;closeGroupModal()&quot;>取消</button>
+        <button class=&quot;btn primary&quot; onclick=&quot;selectMissingAndRetry()&quot;>全部选择</button>
+      </div>
+    </div>
+  </div>
+
+  <div class=&quot;toast-wrap&quot; id=&quot;toastWrap&quot;></div>
+
+  <script>
+    const accountMonth = '202411';
+    const baseRows = [
+      {
+        id: 6885,
+        month: '202411',
+        legal_entity_eas_code: 'TJ02',
+        legal_entity_name: '天津市学而思教育信息咨询有限公司',
+        source: '导入',
+        transaction_result_confirm: '已确认',
+        reviewer_at: '2026-08-26 17:12:06',
+        reviewer_by: '刘玉婷(198612)',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '未推送',
+        invoice_status: '无票',
+        review_batch: 'AUD-202411-01',
+        review_group: 'PYJS-XF01-TAL1-01',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 6886,
+        month: '202411',
+        legal_entity_eas_code: 'ZX06',
+        legal_entity_name: '郑州学而思培训学校有限公司',
+        source: '导入',
+        transaction_result_confirm: '已确认',
+        reviewer_at: '2026-08-26 17:12:06',
+        reviewer_by: '刘玉婷(198612)',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '未推送',
+        invoice_status: '无票',
+        review_batch: 'AUD-202411-01',
+        review_group: 'PYJS-XF01-TAL1-01',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 6887,
+        month: '202411',
+        legal_entity_eas_code: 'ZX07',
+        legal_entity_name: '西安学而思培训中心有限公司',
+        source: '系统',
+        transaction_result_confirm: '已确认',
+        reviewer_at: '2026-08-26 17:12:06',
+        reviewer_by: '刘玉婷(198612)',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '已撤回',
+        invoice_status: '待开票',
+        review_batch: 'AUD-202411-01',
+        review_group: 'PYJS-XF01-TAL1-01',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 6888,
+        month: '202411',
+        legal_entity_eas_code: 'BJ15',
+        legal_entity_name: '北京学而思优培科技有限公司',
+        source: '系统',
+        transaction_result_confirm: '已确认',
+        reviewer_at: '2026-08-27 10:04:18',
+        reviewer_by: '刘玉婷(198612)',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '推送成功',
+        invoice_status: '无票',
+        review_batch: 'AUD-202411-02',
+        review_group: 'PYJS-XF01-TAL1-02',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 6889,
+        month: '202411',
+        legal_entity_eas_code: 'SH09',
+        legal_entity_name: '上海学而思教育培训有限公司',
+        source: '导入',
+        transaction_result_confirm: '已确认',
+        reviewer_at: '2026-08-27 11:06:33',
+        reviewer_by: '刘玉婷(198612)',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '推送失败',
+        invoice_status: '开票失败',
+        review_batch: 'AUD-202411-03',
+        review_group: 'PYJS-XF01-TAL1-03',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 6890,
+        month: '202411',
+        legal_entity_eas_code: 'CD11',
+        legal_entity_name: '成都学而思培训学校有限公司',
+        source: '导入',
+        transaction_result_confirm: '已确认',
+        reviewer_at: '',
+        reviewer_by: '',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '待生成',
+        invoice_status: '无票',
+        review_batch: '',
+        review_group: '',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 6891,
+        month: '202411',
+        legal_entity_eas_code: 'HZ08',
+        legal_entity_name: '杭州学而思培训学校有限公司',
+        source: '系统',
+        transaction_result_confirm: '未确认',
+        reviewer_at: '',
+        reviewer_by: '',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '待生成',
+        invoice_status: '无票',
+        review_batch: '',
+        review_group: '',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 6892,
+        month: '202410',
+        legal_entity_eas_code: 'WH07',
+        legal_entity_name: '武汉学而思教育咨询有限公司',
+        source: '导入',
+        transaction_result_confirm: '已确认',
+        reviewer_at: '2026-07-28 15:30:18',
+        reviewer_by: '刘玉婷(198612)',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '未推送',
+        invoice_status: '无票',
+        review_batch: 'AUD-202410-01',
+        review_group: 'PYJS-XF01-TAL1-04',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 7901,
+        kind: 'offset',
+        month: '202411',
+        legal_entity_eas_code: 'NJ03',
+        legal_entity_name: '南京学而思培训学校有限公司',
+        source: '系统',
+        this_month_tp: '否',
+        transaction_result_confirm: '-',
+        reviewer_at: '',
+        reviewer_by: '',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '-',
+        invoice_status: '-',
+        review_batch: '',
+        review_group: '',
+        deletedVoucher: false,
+        deletedInvoice: false
+      },
+      {
+        id: 7902,
+        kind: 'offset',
+        month: '202411',
+        legal_entity_eas_code: 'CQ05',
+        legal_entity_name: '重庆学而思教育咨询有限公司',
+        source: '系统',
+        this_month_tp: '否',
+        transaction_result_confirm: '-',
+        reviewer_at: '',
+        reviewer_by: '',
+        legal_entity_1_name: '北京新唐思创教育科技有限公司',
+        legal_entity_2_name: '北京世纪好未来教育科技有限公司',
+        voucher_status: '-',
+        invoice_status: '-',
+        review_batch: '',
+        review_group: '',
+        deletedVoucher: false,
+        deletedInvoice: false
+      }
+    ];
+
+    const metricsMap = {
+      6885: { income: '22,319,025.33', cost: '20,091,530.31', histTp: '8,112,033.31', totalTp: '9,785,960.21', realTp: '1,673,926.90', toOffset: '0.00', beforeCost: '11,979,497.00', beforeProfit: '10,338,526.33', beforeRate: '46.32%', median: '7.50%' },
+      6886: { income: '680,794.18', cost: '305,948.55', histTp: '0.00', totalTp: '51,059.56', realTp: '51,059.56', toOffset: '0.00', beforeCost: '305,948.55', beforeProfit: '1,001,800.83', beforeRate: '0.89%', median: '7.50%' },
+      6887: { income: '2,701,762.73', cost: '1,792,510.19', histTp: '0.00', totalTp: '202,632.20', realTp: '202,632.20', toOffset: '0.00', beforeCost: '1,795,510.19', beforeProfit: '905,852.54', beforeRate: '33.51%', median: '7.50%' },
+      6888: { income: '2,224,937.21', cost: '1,486,630.63', histTp: '0.00', totalTp: '166,870.29', realTp: '166,870.29', toOffset: '0.00', beforeCost: '1,486,630.63', beforeProfit: '728,406.58', beforeRate: '32.74%', median: '7.50%' },
+      6889: { income: '1,743,193.88', cost: '144,342.66', histTp: '0.00', totalTp: '1,307,395.41', realTp: '1,307,395.41', toOffset: '0.00', beforeCost: '144,342.66', beforeProfit: '1,598,851.22', beforeRate: '91.72%', median: '7.50%' },
+      6890: { income: '347,577.75', cost: '145,329.02', histTp: '0.00', totalTp: '5,145.51', realTp: '5,145.51', toOffset: '0.00', beforeCost: '145,329.02', beforeProfit: '2,148.73', beforeRate: '1.48%', median: '7.50%' },
+      6891: { income: '3,046,170.23', cost: '386,016.05', histTp: '0.00', totalTp: '2,284,627.67', realTp: '2,284,627.67', toOffset: '0.00', beforeCost: '386,016.05', beforeProfit: '2,658,694.17', beforeRate: '87.47%', median: '7.50%' },
+      6892: { income: '625,818.10', cost: '441,196.73', histTp: '45,128.57', totalTp: '91,973.00', realTp: '46,844.43', toOffset: '0.00', beforeCost: '390,067.19', beforeProfit: '236,138.67', beforeRate: '39.92%', median: '7.50%' },
+      7901: { income: '1,250,000.00', cost: '980,000.00', histTp: '186,500.00', totalTp: '193,750.00', realTp: '0.00', toOffset: '7,250.00', beforeCost: '980,000.00', beforeProfit: '270,000.00', beforeRate: '21.60%', median: '7.50%' },
+      7902: { income: '860,400.00', cost: '712,180.00', histTp: '42,800.00', totalTp: '40,200.00', realTp: '0.00', toOffset: '-2,600.00', beforeCost: '712,180.00', beforeProfit: '148,220.00', beforeRate: '17.23%', median: '7.50%' }
+    };
+
+    baseRows.forEach((row) => {
+      if (!row.kind) row.kind = 'current';
+      if (!row.this_month_tp) row.this_month_tp = '是';
+      Object.assign(row, metricsMap[row.id] || {
+        income: '0.00',
+        cost: '0.00',
+        histTp: '0.00',
+        totalTp: '0.00',
+        realTp: '0.00',
+        toOffset: '0.00',
+        beforeCost: '0.00',
+        beforeProfit: '0.00',
+        beforeRate: '0.00%',
+        median: '7.50%'
+      });
+    });
+
+    let rows = JSON.parse(JSON.stringify(baseRows));
+    let filteredRows = [];
+    let selectedIds = new Set();
+    let pendingMissingIds = [];
+    let currentTab = 'current';
+
+    function cloneRows() {
+      rows = JSON.parse(JSON.stringify(baseRows));
+    }
+
+    function isReviewed(row) {
+      return !!row.reviewer_at;
+    }
+
+    function isCurrentMonth(row) {
+      return row.month === accountMonth;
+    }
+
+    function canSelectRow(row) {
+      return currentTab === 'current' &amp;&amp; isCurrentMonth(row) &amp;&amp; row.kind !== 'offset';
+    }
+
+    function isOffsetRow(row) {
+      return row.kind === 'offset';
+    }
+
+    function parseMoney(value) {
+      return Number(String(value || '0').replace(/,/g, '')) || 0;
+    }
+
+    function formatMoney(value) {
+      return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function monthOffsetRows(month) {
+      return rows.filter((row) => row.kind === 'offset' &amp;&amp; row.month === month);
+    }
+
+    function switchTab(tab) {
+      if (tab === 'offset' &amp;&amp; !monthOffsetRows(document.getElementById('fMonth').value).length) return;
+      currentTab = tab;
+      selectedIds.clear();
+      renderTable();
+    }
+
+    function voucherTagClass(status) {
+      if (status === '推送成功') return 'v-success';
+      if (status === '推送失败') return 'v-fail';
+      if (status === '已撤回') return 'v-revoke';
+      return '';
+    }
+
+    function invoiceTagClass(status) {
+      if (status === '待开票') return 'i-pending';
+      if (status === '开票失败') return 'i-fail';
+      if (status === '已开票') return 'i-success';
+      if (status === '无票') return 'i-none';
+      return '';
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('tbody');
+      const month = document.getElementById('fMonth').value;
+      const subject = document.getElementById('fSubject').value.trim().toUpperCase();
+      const source = document.getElementById('fSource').value;
+      const reviewer = document.getElementById('fReviewer').value;
+      const confirm = document.getElementById('fConfirm').value;
+      const offsetCount = monthOffsetRows(month).length;
+      const currentCount = rows.filter((row) => row.kind !== 'offset' &amp;&amp; row.month === month).length;
+      const isOffsetTab = currentTab === 'offset';
+
+      if (isOffsetTab &amp;&amp; !offsetCount) currentTab = 'current';
+
+      document.getElementById('tabCurrent').classList.toggle('active', currentTab === 'current');
+      document.getElementById('tabOffset').classList.toggle('active', currentTab === 'offset');
+      document.getElementById('tabOffset').style.display = offsetCount ? '' : 'none';
+      document.getElementById('countCurrent').textContent = currentCount;
+      document.getElementById('countOffset').textContent = offsetCount;
+      document.getElementById('toolbarCurrent').style.display = currentTab === 'current' ? '' : 'none';
+      document.getElementById('toolbarOffset').style.display = currentTab === 'offset' ? '' : 'none';
+      document.getElementById('thCheck').style.display = currentTab === 'offset' ? 'none' : '';
+      document.getElementById('fReviewer').parentElement.style.display = currentTab === 'offset' ? 'none' : '';
+      document.getElementById('fConfirm').parentElement.style.display = currentTab === 'offset' ? 'none' : '';
+
+      filteredRows = rows.filter((row) => {
+        if (currentTab === 'offset' ? row.kind !== 'offset' : row.kind === 'offset') return false;
+        if (month &amp;&amp; row.month !== month) return false;
+        if (subject &amp;&amp; !(row.legal_entity_eas_code.toUpperCase().includes(subject) || row.legal_entity_name.includes(subject))) return false;
+        if (source &amp;&amp; row.source !== source) return false;
+        if (currentTab === 'current') {
+          if (reviewer === 'Y' &amp;&amp; !isReviewed(row)) return false;
+          if (reviewer === 'N' &amp;&amp; isReviewed(row)) return false;
+          if (confirm &amp;&amp; row.transaction_result_confirm !== confirm) return false;
+        }
+        return true;
+      });
+
+      tbody.innerHTML = filteredRows.map((row) => {
+        const checked = selectedIds.has(row.id) ? 'checked' : '';
+        const selected = selectedIds.has(row.id) ? 'selected' : '';
+        const disabledRow = canSelectRow(row) ? '' : (currentTab === 'offset' ? '' : 'disabled-row');
+        const disabledCheck = canSelectRow(row) ? '' : 'disabled';
+        const reviewText = currentTab === 'offset' ? '-' : (isReviewed(row) ? '已审核' : '未审核');
+        const reviewClass = currentTab === 'offset' ? '' : (isReviewed(row) ? 'reviewed' : 'unreviewed');
+        const confirmText = currentTab === 'offset' ? '不参与' : row.transaction_result_confirm;
+        const confirmClass = confirmText === '已确认' ? 'confirmed' : confirmText === '未确认' ? 'unconfirmed' : '';
+        const voucherText = row.deletedVoucher ? '已删除' : row.voucher_status;
+        const invoiceText = row.deletedInvoice ? '已删除' : row.invoice_status;
+        const voucherClass = row.deletedVoucher ? 'deleted' : voucherTagClass(voucherText);
+        const invoiceClass = row.deletedInvoice ? 'deleted' : invoiceTagClass(invoiceText);
+        const offsetClass = parseMoney(row.toOffset) !== 0 ? 'offset-nonzero' : '';
+        const checkCell = currentTab === 'offset'
+          ? ''
+          : `<td><input type=&quot;checkbox&quot; ${checked} ${disabledCheck} onchange=&quot;toggleRow(${row.id}, this.checked)&quot; /></td>`;
+        return `
+          <tr class=&quot;${selected} ${disabledRow}&quot;>
+            ${checkCell}
+            <td>${row.id}</td>
+            <td>${row.source}</td>
+            <td>${row.month}</td>
+            <td>${row.legal_entity_eas_code}</td>
+            <td class=&quot;wrap&quot;>${row.legal_entity_name}</td>
+            <td><span class=&quot;tag&quot;>${row.this_month_tp}</span></td>
+            <td class=&quot;money&quot;>${row.income}</td>
+            <td class=&quot;money&quot;>${row.cost}</td>
+            <td class=&quot;money&quot;>${row.histTp}</td>
+            <td class=&quot;money&quot;>${row.totalTp}</td>
+            <td class=&quot;money&quot;>${row.realTp}</td>
+            <td class=&quot;money ${offsetClass}&quot;>${row.toOffset}</td>
+            <td class=&quot;money&quot;>${row.beforeCost}</td>
+            <td class=&quot;money&quot;>${row.beforeProfit}</td>
+            <td>${row.beforeRate}</td>
+            <td>${row.median}</td>
+            <td><span class=&quot;tag ${confirmClass}&quot;>${confirmText}</span></td>
+            <td><span class=&quot;tag ${reviewClass}&quot;>${reviewText}</span></td>
+            <td><span class=&quot;tag ${voucherClass}&quot;>${voucherText}</span></td>
+            <td><span class=&quot;tag ${invoiceClass}&quot;>${invoiceText}</span></td>
+            <td><code>${row.review_batch || '-'}</code></td>
+            <td><code>${row.review_group || '-'}</code></td>
+            <td>${row.reviewer_by || '-'}</td>
+            <td>${row.reviewer_at || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const sumYear = filteredRows.reduce((s, row) => s + parseMoney(row.histTp), 0);
+      const sumTotal = filteredRows.reduce((s, row) => s + parseMoney(row.totalTp), 0);
+      const sumReal = filteredRows.reduce((s, row) => s + parseMoney(row.realTp), 0);
+      const sumOffset = filteredRows.reduce((s, row) => s + parseMoney(row.toOffset), 0);
+      document.getElementById('summaryBar').innerHTML =
+        `合计：1到上月入账累计TP <b>${formatMoney(sumYear)}</b>　1到本月计算累计TP <b>${formatMoney(sumTotal)}</b>　本期实际入账TP <b>${formatMoney(sumReal)}</b>　待冲销TP金额 <b>${formatMoney(sumOffset)}</b>`;
+
+      document.getElementById('totalCount').textContent = filteredRows.length;
+      document.getElementById('selectedMonthText').textContent = month;
+
+      const selectableIds = filteredRows.filter(canSelectRow).map((r) => r.id);
+      const all = selectableIds.length > 0 &amp;&amp; selectableIds.every((id) => selectedIds.has(id));
+      document.getElementById('checkAll').checked = all;
+      syncActionButtons();
+    }
+
+    function applyFilters() {
+      selectedIds.clear();
+      if (currentTab === 'offset' &amp;&amp; !monthOffsetRows(document.getElementById('fMonth').value).length) {
+        currentTab = 'current';
+      }
+      renderTable();
+    }
+
+    function resetFilters() {
+      document.getElementById('fMonth').value = accountMonth;
+      document.getElementById('fSubject').value = '';
+      document.getElementById('fSource').value = '';
+      document.getElementById('fReviewer').value = '';
+      document.getElementById('fConfirm').value = '';
+      selectedIds.clear();
+      renderTable();
+      toast('已重置筛选条件', 'info');
+    }
+
+    function toggleAll(checked) {
+      if (checked) {
+        filteredRows.filter(canSelectRow).forEach((row) => selectedIds.add(row.id));
+      } else {
+        filteredRows.forEach((row) => selectedIds.delete(row.id));
+      }
+      renderTable();
+    }
+
+    function toggleRow(id, checked) {
+      if (checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      renderTable();
+    }
+
+    function getSelectedRows() {
+      return rows.filter((row) => selectedIds.has(row.id));
+    }
+
+    function syncActionButtons() {
+      const selected = getSelectedRows();
+      const has = selected.length > 0;
+      const currentPageMonth = document.getElementById('fMonth').value;
+      const currentMonthOnly = currentPageMonth === accountMonth;
+      const allConfirmed = has &amp;&amp; selected.every((row) => row.transaction_result_confirm === '已确认');
+      const allUnconfirmed = has &amp;&amp; selected.every((row) => row.transaction_result_confirm === '未确认');
+      const allReviewed = has &amp;&amp; selected.every((row) => isReviewed(row));
+      const allUnreviewed = has &amp;&amp; selected.every((row) => !isReviewed(row));
+
+      document.getElementById('btnConfirmTp').disabled = !currentMonthOnly || !has || !allUnconfirmed;
+      document.getElementById('btnCancelTp').disabled = !currentMonthOnly || !has || !allConfirmed || !allUnreviewed;
+      document.getElementById('btnReview').disabled = !currentMonthOnly || !has || !allConfirmed || !allUnreviewed;
+      document.getElementById('btnUnreview').disabled = !currentMonthOnly || !has;
+    }
+
+    function handleConfirmTp() {
+      const selected = getSelectedRows();
+      if (!selected.length) return toast('请选择未确认明细', 'info');
+      if (selected.some((row) => row.transaction_result_confirm !== '未确认')) {
+        return toast('所选数据包含已确认数据，请检查');
+      }
+      openConfirm('确认本月TP结果', '确认后数据将变为“已确认”，仍需后续审核。', () => {
+        selected.forEach((row) => {
+          row.transaction_result_confirm = '已确认';
+        });
+        selectedIds.clear();
+        closeConfirm();
+        renderTable();
+        toast('确认成功', 'ok');
+      });
+    }
+
+    function handleCancelTp() {
+      const selected = getSelectedRows();
+      if (!selected.length) return toast('请选择已确认未审核明细', 'info');
+      if (selected.some((row) => row.transaction_result_confirm !== '已确认' || isReviewed(row))) {
+        return toast('取消确认仅支持已确认且未审核的数据');
+      }
+      openConfirm('取消确认', '取消确认后，数据将回到“未确认”状态。', () => {
+        selected.forEach((row) => {
+          row.transaction_result_confirm = '未确认';
+        });
+        selectedIds.clear();
+        closeConfirm();
+        renderTable();
+        toast('取消确认成功', 'ok');
+      });
+    }
+
+    function handleReview() {
+      const selected = getSelectedRows();
+      if (!selected.length) return toast('请选择已确认未审核明细', 'info');
+      if (selected.some((row) => row.transaction_result_confirm !== '已确认' || isReviewed(row))) {
+        return toast('审核仅支持已确认且未审核的数据');
+      }
+      openConfirm('TP结果审核', '审核后将生成凭证数据；凭证推送后才会生成发票。确认继续吗？', () => {
+        const now = '2026-08-28 16:40:00';
+        const batch = 'AUD-202411-' + String(Math.floor(Math.random() * 90 + 10));
+        selected.forEach((row) => {
+          row.reviewer_at = now;
+          row.reviewer_by = '刘玉婷(198612)';
+          row.review_batch = batch;
+          row.review_group = batch + '-XF01-TAL1';
+          row.voucher_status = '未推送';
+          row.invoice_status = '无票';
+          row.deletedVoucher = false;
+          row.deletedInvoice = false;
+        });
+        selectedIds.clear();
+        closeConfirm();
+        renderTable();
+        toast('审核成功：已生成待推送凭证', 'ok');
+      });
+    }
+
+    function handleUnreview() {
+      const selected = getSelectedRows();
+      if (!selected.length) return toast('请选择已审核明细', 'info');
+      if (document.getElementById('fMonth').value !== accountMonth) {
+        return toast('只能操作当前账期');
+      }
+      if (selected.some((row) => !isReviewed(row))) {
+        return toast('存在未审核数据，无法反审核');
+      }
+      if (selected.some((row) => row.transaction_result_confirm !== '已确认')) {
+        return toast('存在未确认数据，无法反审核');
+      }
+      executeUnreview();
+    }
+
+    function executeUnreview() {
+      const selected = getSelectedRows();
+      const missing = collectMissingGroupRows(selected);
+      if (missing.length) {
+        pendingMissingIds = missing.map((row) => row.id);
+        document.getElementById('groupMissingList').innerHTML = missing
+          .map((row) => `
+            <tr>
+              <td>${row.legal_entity_eas_code}</td>
+              <td>${row.legal_entity_name}</td>
+              <td>${row.legal_entity_1_name}</td>
+              <td>${row.legal_entity_2_name}</td>
+            </tr>
+          `)
+          .join('');
+        document.getElementById('groupMask').classList.add('show');
+        return;
+      }
+
+      if (selected.some((row) => row.voucher_status === '推送成功' || row.voucher_status === '推送中')) {
+        return toast('选择的TP明细凭证已推送，无法反审核');
+      }
+
+      if (selected.some((row) => ['已开票', '开票中', '合并票', '拆分票', '无需开票'].includes(row.invoice_status))) {
+        return toast('选择的TP明细存在拆分票/合并票/已开票/开票中/无需开票的发票，无法反审核');
+      }
+
+      openConfirm('TP结果反审核', '反审核会删除对应凭证及发票，确认要反审核TP明细吗？', () => {
+        selected.forEach((row) => {
+          row.reviewer_at = '';
+          row.reviewer_by = '';
+          row.deletedVoucher = true;
+          if (row.invoice_status === '待开票' || row.invoice_status === '开票失败') {
+            row.deletedInvoice = true;
+          }
+          row.voucher_status = '未推送';
+          if (row.invoice_status !== '无票') {
+            row.invoice_status = row.deletedInvoice ? '已删除' : row.invoice_status;
+          }
+        });
+        selectedIds.clear();
+        closeConfirm();
+        renderTable();
+        toast('反审核成功：已清空审核信息，并模拟删除对应凭证/可删发票', 'ok');
+      });
+    }
+
+    function collectMissingGroupRows(selected) {
+      const selectedIdsArray = selected.map((row) => row.id);
+      const missing = [];
+      const seen = new Set();
+      selected.forEach((row) => {
+        if (!row.review_batch) return;
+        rows.forEach((candidate) => {
+          if (
+            candidate.kind !== 'offset' &amp;&amp;
+            candidate.review_batch === row.review_batch &amp;&amp;
+            candidate.month === row.month &amp;&amp;
+            candidate.transaction_result_confirm === '已确认' &amp;&amp;
+            isReviewed(candidate) &amp;&amp;
+            !selectedIdsArray.includes(candidate.id) &amp;&amp;
+            !seen.has(candidate.id)
+          ) {
+            missing.push(candidate);
+            seen.add(candidate.id);
+          }
+        });
+      });
+      return missing;
+    }
+
+    function selectMissingAndRetry() {
+      pendingMissingIds.forEach((id) => selectedIds.add(id));
+      closeGroupModal();
+      renderTable();
+      toast('已补齐同一审核批次明细，请再次点击TP结果反审核', 'info');
+    }
+
+    function openConfirm(title, body, onOk) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmBody').textContent = body;
+      document.getElementById('confirmOk').onclick = onOk;
+      document.getElementById('confirmMask').classList.add('show');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirmMask').classList.remove('show');
+    }
+
+    function closeGroupModal() {
+      pendingMissingIds = [];
+      document.getElementById('groupMask').classList.remove('show');
+    }
+
+    function toast(msg, type = 'error') {
+      const wrap = document.getElementById('toastWrap');
+      const el = document.createElement('div');
+      el.className = 'toast' + (type === 'ok' ? ' ok' : type === 'info' ? ' info' : '');
+      el.textContent = msg;
+      wrap.appendChild(el);
+      setTimeout(() => el.remove(), 2800);
+    }
+
+    document.getElementById('confirmMask').addEventListener('click', function (e) {
+      if (e.target.id === 'confirmMask') closeConfirm();
+    });
+    document.getElementById('groupMask').addEventListener('click', function (e) {
+      if (e.target.id === 'groupMask') closeGroupModal();
+    });
+
+    cloneRows();
+    renderTable();
+  </script>
+</body>
+</html>
+"></iframe>
+<iframe id="frameZbProduct" title="指标商品配置" src="指标商品配置原型.html"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function clearMenuActive() {
+      document.querySelectorAll('.sider .menu-item').forEach(el => el.classList.remove('active-root'));
+      document.querySelectorAll('.sider .sub-item').forEach(el => el.classList.remove('active'));
+    }
+
+    function showPage(page) {
+      const inv = document.getElementById('frameInvoice');
+      const ty = document.getElementById('frameTongyong');
+      const py = document.getElementById('framePeiyouResult');
+      const zb = document.getElementById('frameZbProduct');
+      const menuInv = document.getElementById('menuInvoice');
+      const menuPy = document.getElementById('menuPeiyou');
+      const menuTy = document.getElementById('menuTongyong');
+      const menuJf = document.getElementById('menuJifen');
+      const subPy = document.getElementById('subPeiyou');
+      const sub = document.getElementById('subTongyong');
+      const subJf = document.getElementById('subJifen');
+      const menuPyResult = document.getElementById('menuPeiyouResult');
+      const menuResult = document.getElementById('menuResult');
+      const menuZbProduct = document.getElementById('menuZbProduct');
+
+      clearMenuActive();
+      inv.classList.remove('active');
+      py.classList.remove('active');
+      ty.classList.remove('active');
+      zb.classList.remove('active');
+
+      if (page === 'invoice') {
+        inv.classList.add('active');
+        menuInv.classList.add('active-root');
+        menuPy.classList.remove('open');
+        subPy.classList.remove('show');
+        menuTy.classList.remove('open');
+        sub.classList.remove('show');
+        menuJf.classList.remove('open');
+        subJf.classList.remove('show');
+      } else if (page === 'peiyou') {
+        py.classList.add('active');
+        menuPy.classList.add('open');
+        subPy.classList.add('show');
+        menuPyResult.classList.add('active');
+        menuTy.classList.remove('open');
+        sub.classList.remove('show');
+        menuJf.classList.remove('open');
+        subJf.classList.remove('show');
+      } else if (page === 'tongyong') {
+        ty.classList.add('active');
+        menuTy.classList.add('open');
+        sub.classList.add('show');
+        menuResult.classList.add('active');
+        menuPy.classList.remove('open');
+        subPy.classList.remove('show');
+        menuJf.classList.remove('open');
+        subJf.classList.remove('show');
+      } else if (page === 'zbproduct') {
+        zb.classList.add('active');
+        menuJf.classList.add('open');
+        subJf.classList.add('show');
+        menuZbProduct.classList.add('active');
+        menuPy.classList.remove('open');
+        subPy.classList.remove('show');
+        menuTy.classList.remove('open');
+        sub.classList.remove('show');
+      }
+    }
+
+    function toggleMenu(menuId, subId) {
+      const menu = document.getElementById(menuId);
+      const sub = document.getElementById(subId);
+      const open = menu.classList.contains('open');
+      if (open) {
+        menu.classList.remove('open');
+        sub.classList.remove('show');
+      } else {
+        menu.classList.add('open');
+        sub.classList.add('show');
+      }
+    }
+
+    document.getElementById('menuPeiyou').addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleMenu('menuPeiyou', 'subPeiyou');
+    });
+
+    document.getElementById('menuTongyong').addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleMenu('menuTongyong', 'subTongyong');
+    });
+
+    document.getElementById('menuJifen').addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleMenu('menuJifen', 'subJifen');
+    });
+
+    document.getElementById('menuInvoice').addEventListener('click', function () {
+      showPage('invoice');
+    });
+
+    document.querySelectorAll('#subPeiyou .sub-item').forEach(function (el) {
+      el.addEventListener('click', function () {
+        const page = el.getAttribute('data-page');
+        if (page === 'peiyou') {
+          showPage('peiyou');
+        } else {
+          document.querySelectorAll('#subPeiyou .sub-item').forEach(s => s.classList.remove('active'));
+          el.classList.add('active');
+          alert('「' + el.textContent.replace('+','') + '」暂未做原型页，当前可切换：培优技术关联交易 / 发票模块 / 关联交易结果明细 / 指标商品配置');
+        }
+      });
+    });
+
+    document.querySelectorAll('#subTongyong .sub-item').forEach(function (el) {
+      el.addEventListener('click', function () {
+        const page = el.getAttribute('data-page');
+        if (page === 'tongyong') {
+          showPage('tongyong');
+        } else {
+          document.querySelectorAll('#subTongyong .sub-item').forEach(s => s.classList.remove('active'));
+          el.classList.add('active');
+          alert('「' + el.textContent.replace('+','') + '」暂未做原型页，当前可切换：发票模块 / 关联交易结果明细 / 指标商品配置');
+        }
+      });
+    });
+
+    document.querySelectorAll('#subJifen .sub-item').forEach(function (el) {
+      el.addEventListener('click', function () {
+        const page = el.getAttribute('data-page');
+        if (page === 'zbproduct') showPage('zbproduct');
+      });
+    });
+
+    showPage('peiyou');
+  </script>
+</body>
+</html>

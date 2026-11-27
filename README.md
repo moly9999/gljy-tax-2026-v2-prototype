@@ -1,6 +1,6 @@
 # 26年税务关联交易第二版 · 原型
 
-在线预览：（Pages 开启后补链接）
+在线预览：https://moly9999.github.io/gljy-tax-2026-v2-prototype/
 
 静态页面，用浏览器直接打开 `index.html` 即可。演示数据仅用于交互，不是生产数据。
 
